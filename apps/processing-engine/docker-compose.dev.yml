@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  processing-engine:
+    build: .
+    container_name: video-processing-service
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./uploads:/app/uploads
+      - ./output:/app/output
+      - .:/app  # Monta el código fuente
+    environment:
+      - LOG_LEVEL=DEBUG
+    command: sh -c "pip install -r requirements.txt && uvicorn main:app --reload --host 0.0.0.0 --port 8000"
+    restart: unless-stopped

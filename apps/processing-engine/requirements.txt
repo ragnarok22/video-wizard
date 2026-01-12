@@ -1,0 +1,29 @@
+# Web Framework
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+
+# Computer Vision & AI
+opencv-python==4.9.0.80
+mediapipe==0.10.9
+
+# Data Processing
+numpy==1.26.3
+
+# Video Processing
+ffmpeg-python==0.2.0
+
+# Audio Transcription
+openai-whisper==20231117
+torch==2.1.2
+torchaudio==2.1.2
+openai>=1.0.0  # For OpenAI API transcription (alternative to local Whisper)
+
+# Additional utilities
+python-multipart==0.0.6  # For file uploads
+pydantic==2.5.3
+requests==2.31.0  # For example script
+
+# Testing (optional)
+pytest==7.4.4
+pytest-cov==4.1.0
+httpx==0.26.0  # For FastAPI testing

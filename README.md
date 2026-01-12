@@ -1,36 +1,259 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Video Wizard Monorepo
+
+This is a Turborepo monorepo for the Video Wizard project, built with Next.js.
+
+## What's inside?
+
+This Turborepo includes the following packages and apps:
+
+### Apps and Packages
+
+- `apps/web`: The main Next.js web application
+- `apps/processing-engine`: **Python-based video processing service** (Smart Crop & AI Analysis)
+- `packages/ui`: Shared UI components (placeholder for future shared components)
+- `packages/tsconfig`: Shared TypeScript configuration files
+
+### Structure
+
+```
+video-wizard/
+├── apps/
+│   ├── web/                      # Next.js application
+│   │   ├── app/                  # Next.js app router
+│   │   │   ├── api/              # API routes (HTTP only)
+│   │   │   ├── content-intelligence/  # 🤖 AI Content Analysis
+│   │   │   └── video-wizard/    # 🎬 Full Video Processing Pipeline
+│   │   ├── features/             # 🆕 Feature modules (screaming architecture)
+│   │   │   └── video/            # Video processing feature
+│   │   │       ├── components/   # Presentational components
+│   │   │       ├── hooks/        # Custom hooks
+│   │   │       ├── types/        # Type definitions
+│   │   │       └── lib/          # Utilities
+│   │   ├── server/               # 🆕 Server-side code
+│   │   │   ├── services/         # Business logic
+│   │   │   ├── types/            # Zod schemas & types
+│   │   │   ├── config/           # Configuration
+│   │   │   ├── prompts/          # AI prompts
+│   │   │   └── lib/              # Server utilities
+│   │   ├── components/           # Shared UI components
+│   │   └── lib/                  # Client utilities
+│   └── processing-engine/        # 🐍 Python Video Processing Service
+│       ├── main.py               # FastAPI application
+│       ├── analyzer.py           # AI-powered video analysis
+│       ├── renderer.py           # Video rendering with FFmpeg
+│       ├── audio_service.py      # Audio extraction & transcription
+│       └── requirements.txt      # Python dependencies
+├── packages/
+│   ├── ui/                      # Shared UI components
+│   └── tsconfig/                # Shared TypeScript configs
+├── .copilot/                    # 🆕 GitHub Copilot documentation
+│   ├── project-instructions.md  # Project guidelines
+│   ├── code-patterns.md         # Code templates
+│   └── architecture-decisions.md # Technical decisions
+├── ARCHITECTURE.md              # 🆕 Architecture overview
+├── FEATURE_GUIDE.md             # 🆕 Feature development guide
+└── turbo.json                   # Turborepo configuration
+```
 
 ## Getting Started
 
-First, run the development server:
+First, install dependencies:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+pnpm install
+```
+
+Then, run the development server:
+
+```bash
 pnpm dev
-# or
-bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+You can start editing the page by modifying `apps/web/app/page.tsx`. The page auto-updates as you edit the file.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Available Scripts
+
+- `pnpm dev` - Start all apps in development mode
+- `pnpm build` - Build all apps and packages
+- `pnpm lint` - Lint all packages
+- `pnpm start` - Start all apps in production mode
+
+### Working with specific packages
+
+To run commands for a specific package:
+
+```bash
+# Run dev server for web app only
+pnpm --filter web dev
+
+# Build web app only
+pnpm --filter web build
+
+# Lint web app only
+pnpm --filter web lint
+```
+
+### 🆕 Video Processing Service
+
+The Python-based video processing service runs independently:
+
+```bash
+# Navigate to the service
+cd apps/processing-engine
+
+# Quick setup
+./setup.sh
+
+# Activate virtual environment
+source venv/bin/activate
+
+# Start the service
+python main.py
+
+# Or use pnpm from root
+pnpm --filter processing-engine dev
+```
+
+**Service runs on:** http://localhost:8000  
+**API Documentation:** http://localhost:8000/docs
+
+**Features:**
+- 🎯 Smart crop 16:9 → 9:16 conversion
+- 🤖 AI-powered face detection (MediaPipe)
+- 🎬 Smooth camera tracking
+- 🎙️ Audio extraction & transcription (Whisper)
+- 📝 Timestamped subtitles generation
+- ⚡ FastAPI REST endpoints
+- 🎥 FFmpeg video rendering
+
+## 🆕 Web Application Features
+
+### 📍 Routes
+
+- **`/`** - Home page
+- **`/content-intelligence`** - AI-powered transcript analysis
+  - Upload transcript or use sample
+  - GPT-4o analyzes content for viral potential
+  - Identifies 30-90s clips with hooks and conclusions
+  - Scores clips 0-100 for viral potential
+  
+- **`/video-wizard`** - 🎬 Complete automated pipeline
+  - Upload video (max 500MB)
+  - Automatic audio extraction
+  - Transcription with timestamps
+  - AI analysis for viral clips
+  - All-in-one processing
+
+### Content Intelligence Module
+
+Analyze transcripts to find viral-worthy clips:
+
+```bash
+cd apps/web
+
+# Setup
+cp .env.local.example .env.local
+# Add your OPENAI_API_KEY
+
+# Run
+pnpm dev
+```
+
+Visit: http://localhost:3000/content-intelligence
+
+**Features:**
+- 🤖 GPT-4o powered analysis
+- 📊 Viral score (0-100)
+- 🎯 Hook & conclusion detection
+- ⏱️ 30-90s optimal clip length
+- 🎨 Visual score indicators
+
+**Docs:** [apps/web/CONTENT_INTELLIGENCE.md](apps/web/CONTENT_INTELLIGENCE.md)
+
+### Video Wizard - Full Pipeline
+
+Complete end-to-end video processing:
+
+```bash
+# Terminal 1: Python backend
+cd apps/processing-engine
+docker-compose -f docker-compose.dev.yml up
+
+# Terminal 2: Next.js frontend
+cd apps/web
+pnpm dev
+```
+
+Visit: http://localhost:3000/video-wizard
+
+**Process:**
+1. 📤 Upload video
+2. 🎙️ Extract audio & transcribe
+3. 🤖 AI analysis for viral clips
+4. 📊 View results with scores
+
+**Documentation:**
+- [Video Wizard Overview](apps/web/VIDEO_WIZARD.md)
+- [Quick Start Guide](apps/web/VIDEO_WIZARD_QUICKSTART.md)
+- [Processing Engine Quick Start](apps/processing-engine/QUICKSTART.md)
+
+## 📚 Documentation
+
+### Architecture
+- **[ARCHITECTURE.md](ARCHITECTURE.md)** - System architecture overview
+- **[FEATURE_GUIDE.md](FEATURE_GUIDE.md)** - Guide for creating features
+
+### Development
+- **[.copilot/project-instructions.md](.copilot/project-instructions.md)** - Project guidelines
+- **[.copilot/code-patterns.md](.copilot/code-patterns.md)** - Code templates
+- **[.copilot/architecture-decisions.md](.copilot/architecture-decisions.md)** - Technical decisions
+
+### Features
+- **[features/video/README.md](apps/web/features/video/README.md)** - Video feature module
+
+### Services
+- **[server/README.md](apps/web/server/README.md)** - Server-side code
+- **[apps/processing-engine/README.md](apps/processing-engine/README.md)** - Python engine
+
+## 🏗️ Architecture Highlights
+
+### Screaming Architecture
+The project uses **feature-based organization** where the structure "screams" what the application does:
+
+```
+features/
+└── video/              # "I handle video processing!"
+    ├── components/     # Presentational (atomic)
+    ├── hooks/          # State management
+    ├── types/          # Type definitions
+    └── lib/            # Utilities
+```
+
+### Separation of Concerns
+- **API Routes**: HTTP handling only
+- **Services**: Business logic
+- **Features**: UI modules with components + hooks
+- **Components**: Presentational, atomic, reusable
+
+### Type Safety
+- TypeScript strict mode
+- Zod schemas for validation
+- Type inference throughout
 
 ## Learn More
 
-To learn more about Next.js, take a look at the following resources:
+To learn more about the technologies used in this project:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API
+- [Turborepo Documentation](https://turbo.build/repo/docs) - learn about Turborepo
+- [pnpm Workspaces](https://pnpm.io/workspaces) - learn about pnpm workspaces
+- [FastAPI Documentation](https://fastapi.tiangolo.com/) - learn about FastAPI
+- [MediaPipe](https://developers.google.com/mediapipe) - learn about MediaPipe
 
 ## Deploy on Vercel
 
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Check out the [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
