@@ -39,10 +39,10 @@ export function validateVideoFile(file: File): { valid: boolean; error?: string 
     return { valid: false, error: 'Please select a valid video file' };
   }
   
-  // Validate file size (max 500MB)
-  const maxSize = 500 * 1024 * 1024;
+  // Validate file size (max 2GB)
+  const maxSize = 5 * 1024 * 1024 * 1024;
   if (file.size > maxSize) {
-    return { valid: false, error: 'File is too large. Maximum 500MB' };
+    return { valid: false, error: 'File is too large. Maximum 5GB' };
   }
 
   return { valid: true };

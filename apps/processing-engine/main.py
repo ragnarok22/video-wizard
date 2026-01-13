@@ -4,6 +4,7 @@ FastAPI application for analyzing and cropping videos
 """
 from fastapi import FastAPI, HTTPException, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 import os
 import shutil
@@ -14,6 +15,7 @@ import logging
 from analyzer import VideoAnalyzer
 from renderer import VideoRenderer
 from audio_service import get_audio_service
+from smart_clipper import SmartClipper
 from config import (
     WHISPER_MODEL, 
     USE_OPENAI_API, 
@@ -41,6 +43,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Mount static file directories for serving uploaded and output files
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+app.mount("/output", StaticFiles(directory="output"), name="output")
+
 # Create necessary directories
 UPLOAD_DIR = Path("uploads")
 OUTPUT_DIR = Path("output")
@@ -50,6 +56,7 @@ OUTPUT_DIR.mkdir(exist_ok=True)
 # Initialize services
 analyzer = VideoAnalyzer()
 renderer = VideoRenderer()
+smart_clipper = SmartClipper()
 audio_service = get_audio_service(
     whisper_model=WHISPER_MODEL,
     use_openai_api=USE_OPENAI_API,
@@ -85,6 +92,27 @@ class TranscribeResponse(BaseModel):
     segments: list
     full_text: str
     segment_count: int
+
+
+class RenderClipRequest(BaseModel):
+    video_path: str
+    start_time: float
+    end_time: float
+    crop_mode: Optional[str] = "dynamic"
+    output_path: Optional[str] = None
+
+
+class RenderClipResponse(BaseModel):
+    success: bool
+    output_path: Optional[str] = None
+    output_url: Optional[str] = None  # HTTP URL to access the file
+    crop_mode: Optional[str] = None
+    duration: Optional[float] = None
+    crop_dimensions: Optional[dict] = None
+    file_size: Optional[int] = None
+    start_time: Optional[float] = None
+    end_time: Optional[float] = None
+    error: Optional[str] = None
 
 
 @app.get("/")
@@ -277,18 +305,109 @@ async def transcribe_video(request: TranscribeRequest):
         raise HTTPException(status_code=500, detail=f"Transcription failed: {str(e)}")
 
 
-        
-        render_result = await render_video(render_request)
-        
-        return {
-            "analysis": analyze_result.dict(),
-            "render": render_result,
-            "output_path": output_path
-        }
+@app.post("/render-clip", response_model=RenderClipResponse)
+async def render_clip(request: RenderClipRequest):
+    """
+    Create a vertical short clip with smart cropping (Phase O)
     
+    Extracts a segment from a source video, crops it to 9:16 aspect ratio,
+    and applies intelligent face tracking to keep the speaker centered.
+    
+    Input:
+    - video_path: Path to source video file
+    - start_time: Start timestamp in seconds (e.g., 10.5)
+    - end_time: End timestamp in seconds (e.g., 40.0)
+    - crop_mode: "dynamic" for smooth face tracking or "static" for fixed center
+    - output_path: Optional custom output path
+    
+    Output:
+    - success: Boolean indicating if rendering succeeded
+    - output_path: Path to the generated clip
+    - crop_mode: The mode used for cropping
+    - duration: Length of the clip in seconds
+    - crop_dimensions: Width and height of the crop
+    - file_size: Size of the output file in bytes
+    
+    Example request:
+    {
+        "video_path": "/uploads/my_video.mp4",
+        "start_time": 10.5,
+        "end_time": 40.0,
+        "crop_mode": "dynamic"
+    }
+    
+    Example response:
+    {
+        "success": true,
+        "output_path": "/output/clip_1234.mp4",
+        "crop_mode": "dynamic",
+        "duration": 29.5,
+        "crop_dimensions": {"width": 608, "height": 1080},
+        "file_size": 5242880,
+        "start_time": 10.5,
+        "end_time": 40.0
+    }
+    """
+    try:
+        video_path = request.video_path
+        
+        # Validate video file exists
+        if not os.path.exists(video_path):
+            raise HTTPException(status_code=404, detail="Video file not found")
+        
+        # Validate time range
+        if request.start_time < 0:
+            raise HTTPException(status_code=400, detail="start_time must be >= 0")
+        
+        if request.start_time >= request.end_time:
+            raise HTTPException(status_code=400, detail="start_time must be less than end_time")
+        
+        # Validate crop mode
+        if request.crop_mode not in ["dynamic", "static"]:
+            raise HTTPException(status_code=400, detail="crop_mode must be 'dynamic' or 'static'")
+        
+        # Generate output path if not provided
+        if request.output_path:
+            output_path = request.output_path
+        else:
+            filename = Path(video_path).stem
+            timestamp = int(request.start_time)
+            output_path = str(OUTPUT_DIR / f"{filename}_clip_{timestamp}s.mp4")
+        
+        logger.info(
+            f"Rendering clip: {video_path} "
+            f"[{request.start_time}s - {request.end_time}s] "
+            f"mode={request.crop_mode} -> {output_path}"
+        )
+        
+        # Create the clip using SmartClipper
+        result = smart_clipper.create_clip(
+            video_path=video_path,
+            start_time=request.start_time,
+            end_time=request.end_time,
+            output_path=output_path,
+            crop_mode=request.crop_mode
+        )
+        
+        # Generate accessible URL for the output file
+        if result.get("success") and result.get("output_path"):
+            # Convert local path to HTTP URL
+            output_filename = Path(result["output_path"]).name
+            result["output_url"] = f"/output/{output_filename}"
+        
+        logger.info(f"Clip rendering complete: {output_path}")
+        
+        return RenderClipResponse(**result)
+    
+    except FileNotFoundError as e:
+        logger.error(f"File not found: {str(e)}")
+        raise HTTPException(status_code=404, detail=str(e))
+    except ValueError as e:
+        logger.error(f"Validation error: {str(e)}")
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        logger.error(f"Processing error: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Processing failed: {str(e)}")
+        logger.error(f"Clip rendering error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Clip rendering failed: {str(e)}")
 
 
 if __name__ == "__main__":

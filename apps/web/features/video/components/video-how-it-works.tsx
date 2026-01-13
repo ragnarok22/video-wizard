@@ -16,7 +16,7 @@ export function VideoHowItWorks() {
           <span className="text-2xl">📤</span>
           <div>
             <p className="font-semibold">1. Upload your video</p>
-            <p>Select any video from your computer (max. 500MB)</p>
+            <p>Select any video from your computer (max. 5GB)</p>
           </div>
         </div>
         <div className="flex gap-3">

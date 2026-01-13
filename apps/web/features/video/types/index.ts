@@ -4,6 +4,8 @@
  * Type definitions for the video processing feature
  */
 
+import type { ContentAnalysis } from '@/server/types/content-analysis';
+
 export interface TranscriptSegment {
   id: number;
   start: number;
@@ -34,7 +36,7 @@ export interface VideoProcessingState {
   currentStep: ProcessingStep;
   uploadedPath: string;
   transcription: TranscriptionResult | null;
-  analysis: any | null;
+  analysis: ContentAnalysis | null;
   error: string;
   progress: string;
 }

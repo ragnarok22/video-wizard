@@ -2,7 +2,7 @@
 
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
-import type { ViralClip } from '@/lib/types/content-intelligence';
+import type { ViralClip } from '@/server/types/content-analysis';
 
 interface ViralClipCardProps {
   clip: ViralClip;
@@ -12,8 +12,15 @@ interface ViralClipCardProps {
 
 function formatTime(seconds: number): string {
   const mins = Math.floor(seconds / 60);
-  const secs = Math.floor(seconds % 60);
-  return `${mins}:${secs.toString().padStart(2, '0')}`;
+  const secs = seconds % 60;
+  
+  // For seconds less than 1 minute, show decimal precision
+  if (mins === 0) {
+    return `0:${secs.toFixed(2)}`;
+  }
+  
+  // For longer durations, show seconds with 1 decimal
+  return `${mins}:${secs.toFixed(1).padStart(4, '0')}`;
 }
 
 function getScoreColor(score: number): string {
@@ -49,7 +56,7 @@ export function ViralClipCard({ clip, index, onSelect }: ViralClipCardProps) {
             {formatTime(clip.start_time)} - {formatTime(clip.end_time)}
           </Badge>
           <Badge variant="secondary">
-            {duration.toFixed(0)}s
+            {duration >= 1 ? `${duration.toFixed(1)}s` : `${(duration * 1000).toFixed(0)}ms`}
           </Badge>
         </div>
         
@@ -118,7 +125,7 @@ export function ViralClipsList({ clips, onClipSelect }: ViralClipsListProps) {
       <div className="grid gap-4">
         {sortedClips.map((clip, index) => (
           <ViralClipCard
-            key={`${clip.start_time}-${clip.end_time}`}
+            key={`${index}-${clip.start_time}-${clip.end_time}`}
             clip={clip}
             index={index}
             onSelect={onClipSelect}

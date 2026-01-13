@@ -3,11 +3,11 @@
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { ViralClipsList } from '@/components/viral-clips-list';
-import type { ContentAnalysis } from '@/lib/types/content-intelligence';
+import type { ContentAnalysis, ViralClip } from '@/server/types/content-analysis';
 
 interface AnalysisResultsProps {
   analysis: ContentAnalysis;
-  onClipSelect?: (clip: any) => void;
+  onClipSelect?: (clip: ViralClip) => void;
 }
 
 /**

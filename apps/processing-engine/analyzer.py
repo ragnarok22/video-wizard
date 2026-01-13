@@ -119,6 +119,7 @@ class VideoAnalyzer:
     def _detect_face_center(self, frame: np.ndarray, width: int, height: int) -> float:
         """
         Detect face in frame and return center X coordinate
+        Prioritizes the most prominent face (likely the speaker)
         
         Args:
             frame: Video frame
@@ -135,17 +136,87 @@ class VideoAnalyzer:
         results = self.face_detection.process(rgb_frame)
         
         if results.detections:
-            # Get the first (most prominent) face
-            detection = results.detections[0]
+            # Select the most prominent face (largest, most centered)
+            best_face = self._select_speaking_face(results.detections, width, height)
+            
+            if best_face:
+                bbox = best_face.location_data.relative_bounding_box
+                
+                # Calculate center X coordinate
+                center_x = (bbox.xmin + bbox.width / 2) * width
+                
+                return center_x
+        
+        # No face detected, return center of frame
+        return width / 2
+    
+    def _select_speaking_face(self, detections: List, width: int, height: int):
+        """
+        Select the face most likely to be speaking from multiple detections
+        
+        Strategy:
+        1. Prioritize larger faces (closer to camera, more prominent)
+        2. Prioritize faces closer to center (usually the main subject)
+        3. Consider detection confidence
+        
+        Args:
+            detections: List of MediaPipe face detections
+            width: Frame width
+            height: Frame height
+            
+        Returns:
+            The most prominent face detection
+        """
+        if not detections:
+            return None
+        
+        if len(detections) == 1:
+            return detections[0]
+        
+        best_face = None
+        best_score = -1
+        
+        frame_center_x = width / 2
+        frame_center_y = height / 2
+        
+        for detection in detections:
             bbox = detection.location_data.relative_bounding_box
+            confidence = detection.score[0] if detection.score else 0.5
             
-            # Calculate center X coordinate
-            center_x = (bbox.xmin + bbox.width / 2) * width
+            # Calculate face metrics
+            face_width = bbox.width * width
+            face_height = bbox.height * height
+            face_area = face_width * face_height
             
-            return center_x
-        else:
-            # No face detected, return center of frame
-            return width / 2
+            # Calculate distance from frame center
+            face_center_x = (bbox.xmin + bbox.width / 2) * width
+            face_center_y = (bbox.ymin + bbox.height / 2) * height
+            distance_from_center = np.sqrt(
+                (face_center_x - frame_center_x) ** 2 + 
+                (face_center_y - frame_center_y) ** 2
+            )
+            
+            # Normalize metrics (0-1 scale)
+            # Larger face area = more prominent (normalize by frame area)
+            size_score = face_area / (width * height)
+            
+            # Closer to center = more prominent (normalize by max possible distance)
+            max_distance = np.sqrt((width / 2) ** 2 + (height / 2) ** 2)
+            center_score = 1 - (distance_from_center / max_distance)
+            
+            # Combined score (weighted)
+            # Size is most important (50%), center position (30%), confidence (20%)
+            score = (
+                size_score * 0.5 + 
+                center_score * 0.3 + 
+                confidence * 0.2
+            )
+            
+            if score > best_score:
+                best_score = score
+                best_face = detection
+        
+        return best_face
     
     def _smooth_positions(self, positions: List[float], window_size: int = 15) -> List[float]:
         """

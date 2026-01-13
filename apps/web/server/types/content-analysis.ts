@@ -4,7 +4,7 @@ import { z } from 'zod';
  * Zod schema for an individual viral clip
  */
 export const ViralClipSchema = z.object({
-  start_time: z.number().describe('Start time in seconds'),
+  start_time: z.number().min(0).describe('Start time in seconds'),
   end_time: z.number().describe('End time in seconds'),
   viral_score: z
     .number()
