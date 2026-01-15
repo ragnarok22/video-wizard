@@ -14,7 +14,7 @@
     "@remotion/bundler": "^4.0.405",
     "@remotion/renderer": "^4.0.405",
     "express": "^4.21.2",
-    "remotion-compositions": "workspace:*"
+    "@workspace/remotion-compositions": "workspace:*"
   },
   "devDependencies": {
     "@types/express": "^5.0.0",

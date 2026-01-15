@@ -259,11 +259,16 @@ Visit: http://localhost:3000/video-wizard
 ### Architecture
 - **[ARCHITECTURE.md](ARCHITECTURE.md)** - System architecture overview
 - **[FEATURE_GUIDE.md](FEATURE_GUIDE.md)** - Guide for creating features
+- **[CLAUDE.MD](CLAUDE.MD)** - Claude Code integration guide
 
 ### Development
 - **[.copilot/project-instructions.md](.copilot/project-instructions.md)** - Project guidelines
 - **[.copilot/code-patterns.md](.copilot/code-patterns.md)** - Code templates
 - **[.copilot/architecture-decisions.md](.copilot/architecture-decisions.md)** - Technical decisions
+
+### Git & Quality
+- **[COMMIT_CONVENTIONS.md](COMMIT_CONVENTIONS.md)** - Commit message guidelines
+- **[HUSKY_SETUP.md](HUSKY_SETUP.md)** - Git hooks setup and troubleshooting
 
 ### Features
 - **[features/video/README.md](apps/web/features/video/README.md)** - Video feature module
@@ -271,6 +276,32 @@ Visit: http://localhost:3000/video-wizard
 ### Services
 - **[server/README.md](apps/web/server/README.md)** - Server-side code
 - **[apps/processing-engine/README.md](apps/processing-engine/README.md)** - Python engine
+
+## 🔧 Code Quality
+
+This project enforces code quality through automated checks:
+
+### Commit Conventions
+
+Use [Conventional Commits](https://www.conventionalcommits.org/) format:
+
+```bash
+# Interactive commit tool (recommended)
+pnpm commit
+
+# Or write commits manually
+git commit -m "feat(video): add subtitle rendering"
+```
+
+### Pre-commit Checks
+
+Automatically run on every commit:
+- ✓ **ESLint**: Lints and fixes JavaScript/TypeScript
+- ✓ **Prettier**: Formats all code files
+- ✓ **Python linters**: Black and Flake8 for Python code
+- ✓ **Commit validation**: Ensures proper commit message format
+
+See [HUSKY_SETUP.md](HUSKY_SETUP.md) for detailed setup instructions.
 
 ## 🏗️ Architecture Highlights
 
