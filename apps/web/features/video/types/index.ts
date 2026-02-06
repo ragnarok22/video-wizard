@@ -1,6 +1,6 @@
 /**
  * Video Feature Types
- * 
+ *
  * Type definitions for the video processing feature
  */
 
@@ -22,18 +22,22 @@ export interface TranscriptionResult {
   language: string; // Detected language code (e.g., "en", "es")
 }
 
-export type ProcessingStep = 
-  | 'idle' 
-  | 'uploading' 
-  | 'transcribing' 
-  | 'analyzing' 
-  | 'complete' 
+export type ProcessingStep =
+  | 'idle'
+  | 'uploading'
+  | 'transcribing'
+  | 'analyzing'
+  | 'complete'
   | 'error';
 
 export type StepStatus = 'complete' | 'current' | 'error' | 'pending';
 
+export type VideoInputMode = 'file' | 'youtube';
+
 export interface VideoProcessingState {
   file: File | null;
+  youtubeUrl: string;
+  inputMode: VideoInputMode;
   currentStep: ProcessingStep;
   uploadedPath: string;
   transcription: TranscriptionResult | null;
@@ -55,7 +59,16 @@ export interface SubtitleSegment {
 /**
  * Template style for subtitle rendering
  */
-export type SubtitleTemplate = 'default' | 'viral' | 'minimal' | 'modern' | 'highlight' | 'colorshift' | 'hormozi' | 'mrbeast' | 'mrbeastemoji';
+export type SubtitleTemplate =
+  | 'default'
+  | 'viral'
+  | 'minimal'
+  | 'modern'
+  | 'highlight'
+  | 'colorshift'
+  | 'hormozi'
+  | 'mrbeast'
+  | 'mrbeastemoji';
 
 /**
  * Generated video clip with loading state

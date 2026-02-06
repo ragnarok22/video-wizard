@@ -7,7 +7,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 import os
+import re
 import shutil
+import uuid
 from pathlib import Path
 from typing import Optional
 import logging
@@ -114,6 +116,10 @@ class RenderClipResponse(BaseModel):
     start_time: Optional[float] = None
     end_time: Optional[float] = None
     error: Optional[str] = None
+
+
+class YouTubeDownloadRequest(BaseModel):
+    url: str
 
 
 @app.get("/")
@@ -409,6 +415,78 @@ async def render_clip(request: RenderClipRequest):
     except Exception as e:
         logger.error(f"Clip rendering error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Clip rendering failed: {str(e)}")
+
+
+YOUTUBE_URL_PATTERN = re.compile(
+    r'(?:https?://)?(?:www\.)?(?:youtube\.com/(?:watch\?.*v=|shorts/|embed/|v/)|youtu\.be/)([a-zA-Z0-9_-]{11})'
+)
+
+
+@app.post("/download-youtube")
+async def download_youtube(request: YouTubeDownloadRequest):
+    """
+    Download a video from YouTube and save it to the uploads directory.
+    Returns the same response shape as /upload for seamless integration.
+    """
+    try:
+        url = request.url.strip()
+
+        # Validate YouTube URL
+        match = YOUTUBE_URL_PATTERN.search(url)
+        if not match:
+            raise HTTPException(status_code=400, detail="Invalid YouTube URL")
+
+        video_id = match.group(1)
+        logger.info(f"Downloading YouTube video: {video_id}")
+
+        # Import yt-dlp
+        try:
+            import yt_dlp
+        except ImportError:
+            raise HTTPException(
+                status_code=500,
+                detail="yt-dlp is not installed. Run: pip install yt-dlp"
+            )
+
+        # Generate unique filename to avoid collisions
+        unique_id = str(uuid.uuid4())[:8]
+        output_filename = f"yt_{video_id}_{unique_id}.mp4"
+        output_path = UPLOAD_DIR / output_filename
+
+        # Configure yt-dlp options
+        ydl_opts = {
+            'format': 'bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/best[height<=1080][ext=mp4]/best[height<=1080]',
+            'outtmpl': str(output_path),
+            'merge_output_format': 'mp4',
+            'quiet': True,
+            'no_warnings': True,
+            'max_filesize': 500 * 1024 * 1024,  # 500MB limit
+        }
+
+        # Download video
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=True)
+            title = info.get('title', video_id)
+
+        # Verify file was downloaded
+        if not output_path.exists():
+            raise HTTPException(status_code=500, detail="Download completed but file not found")
+
+        file_size = output_path.stat().st_size
+        logger.info(f"YouTube video downloaded: {output_filename} ({file_size / (1024*1024):.1f} MB)")
+
+        # Return same shape as /upload endpoint
+        return {
+            "filename": output_filename,
+            "path": str(output_path),
+            "message": f"YouTube video downloaded: {title}"
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"YouTube download error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"YouTube download failed: {str(e)}")
 
 
 if __name__ == "__main__":

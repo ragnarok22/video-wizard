@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import type { CaptionTemplate } from '@remotion/compositions/types';
 import { getPythonEngineUrl, validateVideoFile } from '../lib/utils';
+import { isYouTubeUrl } from '../lib/youtube';
 
 export interface SubtitleSegment {
   start: number; // milliseconds
@@ -19,8 +20,12 @@ export type SubtitleGenerationStep =
   | 'complete'
   | 'error';
 
+export type VideoInputMode = 'file' | 'youtube';
+
 export interface SubtitleGenerationState {
   file: File | null;
+  youtubeUrl: string;
+  inputMode: VideoInputMode;
   currentStep: SubtitleGenerationStep;
   uploadedPath: string;
   subtitles: SubtitleSegment[];
@@ -44,6 +49,8 @@ interface UseSubtitleGenerationOptions {
 export function useSubtitleGeneration(options?: UseSubtitleGenerationOptions) {
   const [state, setState] = useState<SubtitleGenerationState>({
     file: null,
+    youtubeUrl: '',
+    inputMode: 'file',
     currentStep: 'idle',
     uploadedPath: '',
     subtitles: [],
@@ -71,6 +78,14 @@ export function useSubtitleGeneration(options?: UseSubtitleGenerationOptions) {
     setState((prev) => ({ ...prev, file, error: '' }));
   };
 
+  const setYoutubeUrl = (youtubeUrl: string) => {
+    setState((prev) => ({ ...prev, youtubeUrl, error: '' }));
+  };
+
+  const setInputMode = (inputMode: VideoInputMode) => {
+    setState((prev) => ({ ...prev, inputMode, error: '' }));
+  };
+
   const setLanguage = (language: string) => {
     setState((prev) => ({ ...prev, language }));
   };
@@ -90,6 +105,8 @@ export function useSubtitleGeneration(options?: UseSubtitleGenerationOptions) {
   const resetState = () => {
     setState({
       file: null,
+      youtubeUrl: '',
+      inputMode: 'file',
       currentStep: 'idle',
       uploadedPath: '',
       subtitles: [],
@@ -102,35 +119,56 @@ export function useSubtitleGeneration(options?: UseSubtitleGenerationOptions) {
   };
 
   /**
-   * Upload video and generate subtitles
+   * Upload video (or download from YouTube) and generate subtitles
    */
   const generateSubtitles = async () => {
-    if (!state.file) return;
+    const isYouTube = state.inputMode === 'youtube';
+
+    if (!isYouTube && !state.file) return;
+    if (isYouTube && !isYouTubeUrl(state.youtubeUrl)) return;
 
     try {
-      // Step 1: Upload video
+      // Step 1: Get video to server (upload or YouTube download)
       updateState({
         currentStep: 'uploading',
-        progress: 'Uploading video to server...',
+        progress: isYouTube ? 'Downloading video from YouTube...' : 'Uploading video to server...',
         error: '',
       });
 
-      const formData = new FormData();
-      formData.append('file', state.file);
+      let uploadData: { path: string; filename: string };
 
-      const uploadResponse = await fetch(`${PYTHON_ENGINE_URL}/upload`, {
-        method: 'POST',
-        body: formData,
-      });
+      if (isYouTube) {
+        const downloadResponse = await fetch(`${PYTHON_ENGINE_URL}/download-youtube`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: state.youtubeUrl }),
+        });
 
-      if (!uploadResponse.ok) {
-        throw new Error('Error uploading video');
+        if (!downloadResponse.ok) {
+          const errorData = await downloadResponse.json().catch(() => null);
+          throw new Error(errorData?.detail || 'Error downloading YouTube video');
+        }
+
+        uploadData = await downloadResponse.json();
+      } else {
+        const formData = new FormData();
+        formData.append('file', state.file!);
+
+        const uploadResponse = await fetch(`${PYTHON_ENGINE_URL}/upload`, {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!uploadResponse.ok) {
+          throw new Error('Error uploading video');
+        }
+
+        uploadData = await uploadResponse.json();
       }
 
-      const uploadData = await uploadResponse.json();
       updateState({
         uploadedPath: uploadData.path,
-        progress: `Video uploaded: ${uploadData.filename}`,
+        progress: `Video ready: ${uploadData.filename}`,
       });
 
       // Step 2: Generate subtitles
@@ -240,6 +278,8 @@ export function useSubtitleGeneration(options?: UseSubtitleGenerationOptions) {
   return {
     ...state,
     setFile,
+    setYoutubeUrl,
+    setInputMode,
     setLanguage,
     setTemplate,
     updateSubtitles,

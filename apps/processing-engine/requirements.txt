@@ -18,6 +18,9 @@ torch==2.1.2
 torchaudio==2.1.2
 openai>=1.0.0  # For OpenAI API transcription (alternative to local Whisper)
 
+# YouTube Download
+yt-dlp>=2024.1.0
+
 # Additional utilities
 python-multipart==0.0.6  # For file uploads
 pydantic==2.5.3

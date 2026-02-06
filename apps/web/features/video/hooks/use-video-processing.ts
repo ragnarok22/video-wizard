@@ -3,7 +3,8 @@
 import type { ContentAnalysis } from '@/lib/types/content-intelligence';
 import { useState } from 'react';
 import { formatTranscriptForAI, getPythonEngineUrl, validateVideoFile } from '../lib/utils';
-import type { TranscriptionResult, VideoProcessingState } from '../types';
+import { isYouTubeUrl } from '../lib/youtube';
+import type { TranscriptionResult, VideoInputMode, VideoProcessingState } from '../types';
 
 interface UseVideoProcessingOptions {
   onComplete?: (
@@ -22,6 +23,8 @@ interface UseVideoProcessingOptions {
 export function useVideoProcessing(options?: UseVideoProcessingOptions) {
   const [state, setState] = useState<VideoProcessingState>({
     file: null,
+    youtubeUrl: '',
+    inputMode: 'file',
     currentStep: 'idle',
     uploadedPath: '',
     transcription: null,
@@ -48,6 +51,14 @@ export function useVideoProcessing(options?: UseVideoProcessingOptions) {
     setState((prev) => ({ ...prev, file, error: '' }));
   };
 
+  const setYoutubeUrl = (youtubeUrl: string) => {
+    setState((prev) => ({ ...prev, youtubeUrl, error: '' }));
+  };
+
+  const setInputMode = (inputMode: VideoInputMode) => {
+    setState((prev) => ({ ...prev, inputMode, error: '' }));
+  };
+
   const updateState = (updates: Partial<VideoProcessingState>) => {
     setState((prev) => ({ ...prev, ...updates }));
   };
@@ -55,6 +66,8 @@ export function useVideoProcessing(options?: UseVideoProcessingOptions) {
   const resetState = () => {
     setState({
       file: null,
+      youtubeUrl: '',
+      inputMode: 'file',
       currentStep: 'idle',
       uploadedPath: '',
       transcription: null,
@@ -66,32 +79,53 @@ export function useVideoProcessing(options?: UseVideoProcessingOptions) {
   };
 
   const processVideo = async () => {
-    if (!state.file) return;
+    const isYouTube = state.inputMode === 'youtube';
+
+    if (!isYouTube && !state.file) return;
+    if (isYouTube && !isYouTubeUrl(state.youtubeUrl)) return;
 
     try {
-      // Step 1: Upload video
+      // Step 1: Get video to server (upload or YouTube download)
       updateState({
         currentStep: 'uploading',
-        progress: 'Uploading video to server...',
+        progress: isYouTube ? 'Downloading video from YouTube...' : 'Uploading video to server...',
         error: '',
       });
 
-      const formData = new FormData();
-      formData.append('file', state.file);
+      let uploadData: { path: string; filename: string };
 
-      const uploadResponse = await fetch(`${PYTHON_ENGINE_URL}/upload`, {
-        method: 'POST',
-        body: formData,
-      });
+      if (isYouTube) {
+        const downloadResponse = await fetch(`${PYTHON_ENGINE_URL}/download-youtube`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: state.youtubeUrl }),
+        });
 
-      if (!uploadResponse.ok) {
-        throw new Error('Error uploading video');
+        if (!downloadResponse.ok) {
+          const errorData = await downloadResponse.json().catch(() => null);
+          throw new Error(errorData?.detail || 'Error downloading YouTube video');
+        }
+
+        uploadData = await downloadResponse.json();
+      } else {
+        const formData = new FormData();
+        formData.append('file', state.file!);
+
+        const uploadResponse = await fetch(`${PYTHON_ENGINE_URL}/upload`, {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!uploadResponse.ok) {
+          throw new Error('Error uploading video');
+        }
+
+        uploadData = await uploadResponse.json();
       }
 
-      const uploadData = await uploadResponse.json();
       updateState({
         uploadedPath: uploadData.path,
-        progress: `Video uploaded: ${uploadData.filename}`,
+        progress: `Video ready: ${uploadData.filename}`,
       });
 
       // Step 2: Transcribe video
@@ -174,6 +208,8 @@ export function useVideoProcessing(options?: UseVideoProcessingOptions) {
   return {
     ...state,
     setFile,
+    setYoutubeUrl,
+    setInputMode,
     processVideo,
     resetState,
   };

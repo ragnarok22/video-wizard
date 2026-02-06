@@ -3,6 +3,7 @@
 import { Alert, AlertDescription } from '@workspace/ui/components/alert';
 import { Button } from '@workspace/ui/components/button';
 import { Card } from '@workspace/ui/components/card';
+import { Input } from '@workspace/ui/components/input';
 import { Progress } from '@workspace/ui/components/progress';
 import {
   Select,
@@ -11,11 +12,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@workspace/ui/components/select';
-import { AlertCircle, CheckCircle2, Download, FileText, Upload, Video } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@workspace/ui/components/tabs';
+import { AlertCircle, CheckCircle2, Download, FileText, Link, Upload, Video } from 'lucide-react';
 import { SubtitleEditor } from '../components/subtitle-editor';
 import { TemplateSelector } from '../components/template-selector';
+import type { VideoInputMode } from '../hooks/use-subtitle-generation';
 import { useSubtitleGeneration } from '../hooks/use-subtitle-generation';
 import { downloadSrt, downloadVtt } from '../lib/subtitle-export';
+import { isYouTubeUrl } from '../lib/youtube';
 
 const LANGUAGE_OPTIONS = [
   { value: 'auto', label: 'Auto-detect' },
@@ -33,6 +37,8 @@ const LANGUAGE_OPTIONS = [
 export function SubtitleGeneratorContainer() {
   const {
     file,
+    youtubeUrl,
+    inputMode,
     currentStep,
     subtitles,
     language,
@@ -41,6 +47,8 @@ export function SubtitleGeneratorContainer() {
     error,
     progress,
     setFile,
+    setYoutubeUrl,
+    setInputMode,
     setLanguage,
     setTemplate,
     updateSubtitles,
@@ -59,7 +67,9 @@ export function SubtitleGeneratorContainer() {
     currentStep === 'generating-subtitles' ||
     currentStep === 'rendering';
 
-  const canGenerate = file && !isProcessing;
+  const isYouTubeValid = youtubeUrl.trim() !== '' && isYouTubeUrl(youtubeUrl);
+  const canGenerate =
+    inputMode === 'file' ? file && !isProcessing : isYouTubeValid && !isProcessing;
   const canRender = currentStep === 'editing' && subtitles.length > 0;
 
   return (
@@ -69,7 +79,7 @@ export function SubtitleGeneratorContainer() {
         <div className="space-y-2">
           <h1 className="text-4xl font-bold tracking-tight">Subtitle Generator</h1>
           <p className="text-muted-foreground text-lg">
-            Upload a video, generate subtitles, and render with your preferred style
+            Upload a video or paste a YouTube URL to generate subtitles
           </p>
         </div>
 
@@ -109,66 +119,114 @@ export function SubtitleGeneratorContainer() {
           <Card className="p-6">
             <div className="space-y-6">
               <div>
-                <h2 className="text-2xl font-semibold mb-2">Step 1: Upload Video</h2>
-                <p className="text-muted-foreground">Select a video file to generate subtitles</p>
+                <h2 className="text-2xl font-semibold mb-2">Step 1: Select Video</h2>
+                <p className="text-muted-foreground">Upload a file or paste a YouTube URL</p>
               </div>
 
-              <div className="space-y-4">
-                <div>
-                  <label
-                    htmlFor="video-upload"
-                    className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer bg-muted/50 hover:bg-muted transition-colors"
-                  >
-                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                      <Upload className="w-12 h-12 mb-4 text-muted-foreground" />
-                      <p className="mb-2 text-sm text-muted-foreground">
-                        <span className="font-semibold">Click to upload</span> or drag and drop
-                      </p>
-                      <p className="text-xs text-muted-foreground">MP4, MOV, AVI (MAX. 500MB)</p>
-                      {file && (
-                        <p className="mt-4 text-sm font-medium text-primary">
-                          Selected: {file.name}
+              <Tabs value={inputMode} onValueChange={(v) => setInputMode(v as VideoInputMode)}>
+                <TabsList className="w-full">
+                  <TabsTrigger value="file" className="flex-1">
+                    <Upload className="w-4 h-4 mr-2" />
+                    Upload File
+                  </TabsTrigger>
+                  <TabsTrigger value="youtube" className="flex-1">
+                    <Link className="w-4 h-4 mr-2" />
+                    YouTube URL
+                  </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="file">
+                  <div className="space-y-4">
+                    <label
+                      htmlFor="video-upload"
+                      className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer bg-muted/50 hover:bg-muted transition-colors"
+                    >
+                      <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                        <Upload className="w-12 h-12 mb-4 text-muted-foreground" />
+                        <p className="mb-2 text-sm text-muted-foreground">
+                          <span className="font-semibold">Click to upload</span> or drag and drop
+                        </p>
+                        <p className="text-xs text-muted-foreground">MP4, MOV, AVI (MAX. 500MB)</p>
+                        {file && (
+                          <p className="mt-4 text-sm font-medium text-primary">
+                            Selected: {file.name}
+                          </p>
+                        )}
+                      </div>
+                      <input
+                        id="video-upload"
+                        type="file"
+                        className="hidden"
+                        accept="video/*"
+                        onChange={handleFileChange}
+                      />
+                    </label>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="youtube">
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">YouTube Video URL</label>
+                      <Input
+                        type="url"
+                        placeholder="https://www.youtube.com/watch?v=..."
+                        value={youtubeUrl}
+                        onChange={(e) => setYoutubeUrl(e.target.value)}
+                      />
+                      {youtubeUrl && (
+                        <p
+                          className={`text-xs ${isYouTubeValid ? 'text-green-600' : 'text-destructive'}`}
+                        >
+                          {isYouTubeValid
+                            ? 'Valid YouTube URL'
+                            : 'Please enter a valid YouTube URL'}
                         </p>
                       )}
                     </div>
-                    <input
-                      id="video-upload"
-                      type="file"
-                      className="hidden"
-                      accept="video/*"
-                      onChange={handleFileChange}
-                    />
-                  </label>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Language</label>
-                    <Select value={language} onValueChange={setLanguage}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {LANGUAGE_OPTIONS.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      Supports youtube.com/watch, youtu.be, and youtube.com/shorts URLs
+                    </p>
                   </div>
-                </div>
+                </TabsContent>
+              </Tabs>
 
-                <Button
-                  onClick={generateSubtitles}
-                  disabled={!canGenerate}
-                  className="w-full"
-                  size="lg"
-                >
-                  <Upload className="mr-2 h-4 w-4" />
-                  Upload and Generate Subtitles
-                </Button>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Language</label>
+                  <Select value={language} onValueChange={setLanguage}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {LANGUAGE_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
+
+              <Button
+                onClick={generateSubtitles}
+                disabled={!canGenerate}
+                className="w-full"
+                size="lg"
+              >
+                {inputMode === 'youtube' ? (
+                  <>
+                    <Link className="mr-2 h-4 w-4" />
+                    Download and Generate Subtitles
+                  </>
+                ) : (
+                  <>
+                    <Upload className="mr-2 h-4 w-4" />
+                    Upload and Generate Subtitles
+                  </>
+                )}
+              </Button>
             </div>
           </Card>
         )}

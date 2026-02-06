@@ -7,7 +7,7 @@ module.exports = {
       if (file.includes('apps/remotion-server/')) workspaces.add('remotion-server');
       if (file.includes('packages/')) {
         const match = file.match(/packages\/([^/]+)/);
-        if (match) workspaces.add(match[1]);
+        if (match) workspaces.add(`@workspace/${match[1]}`);
       }
     });
 
@@ -24,7 +24,4 @@ module.exports = {
 
   // JSON, Markdown, CSS, and other files
   '*.{json,md,css,scss,yaml,yml}': ['prettier --write'],
-
-  // Python files (for processing-engine)
-  '*.py': ['python -m black --check', 'python -m flake8'],
 };

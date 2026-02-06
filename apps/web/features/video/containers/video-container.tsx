@@ -34,6 +34,8 @@ export function VideoContainer() {
 
   const {
     file,
+    youtubeUrl,
+    inputMode,
     currentStep,
     transcription,
     analysis,
@@ -42,11 +44,13 @@ export function VideoContainer() {
     progress,
     uploadedPath,
     setFile,
+    setYoutubeUrl,
+    setInputMode,
     processVideo,
     resetState,
   } = useVideoProcessing({
     onComplete: (data, _uploadedPath, _transcription) => {
-      console.log('Analysis completed:', data)
+      console.log('Analysis completed:', data);
       handleGenerateClips(data, _uploadedPath, _transcription);
     },
     onError: (err) => {
@@ -304,8 +308,12 @@ export function VideoContainer() {
 
       <VideoUploader
         file={file}
+        youtubeUrl={youtubeUrl}
+        inputMode={inputMode}
         currentStep={currentStep}
         onFileSelect={setFile}
+        onYoutubeUrlChange={setYoutubeUrl}
+        onInputModeChange={setInputMode}
         onProcess={processVideo}
         onReset={resetState}
         error={error}
