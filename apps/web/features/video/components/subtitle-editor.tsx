@@ -5,7 +5,9 @@ import { Button } from '@workspace/ui/components/button';
 import { Card } from '@workspace/ui/components/card';
 import { Input } from '@workspace/ui/components/input';
 import { ScrollArea } from '@workspace/ui/components/scroll-area';
+import { Download, FileText } from 'lucide-react';
 import type { SubtitleSegment } from '../hooks/use-subtitle-generation';
+import { downloadSrt, downloadVtt } from '../lib/subtitle-export';
 
 interface SubtitleEditorProps {
   subtitles: SubtitleSegment[];
@@ -62,6 +64,28 @@ export function SubtitleEditor({
             {subtitles.length} subtitle segments • Click to edit text
           </p>
         </div>
+        {subtitles.length > 0 && (
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => downloadSrt(subtitles)}
+              disabled={disabled}
+            >
+              <Download className="w-3.5 h-3.5 mr-1.5" />
+              SRT
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => downloadVtt(subtitles)}
+              disabled={disabled}
+            >
+              <FileText className="w-3.5 h-3.5 mr-1.5" />
+              VTT
+            </Button>
+          </div>
+        )}
       </div>
 
       <ScrollArea className="h-[500px] rounded-md border">

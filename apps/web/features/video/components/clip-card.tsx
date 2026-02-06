@@ -10,9 +10,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@workspace/ui/components/select';
-import { Edit, Film, Loader2, Play, Sparkles } from 'lucide-react';
+import { Download, Edit, FileText, Film, Loader2, Play, Sparkles } from 'lucide-react';
 import { useState } from 'react';
 import type { SubtitleSegment, SubtitleTemplate } from '../types';
+import { downloadSrt, downloadVtt } from '../lib/subtitle-export';
 import { RemotionPreview } from './remotion-preview';
 
 interface ClipCardProps {
@@ -80,9 +81,7 @@ export function ClipCard({
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-muted-foreground">
-              Clip {index + 1}
-            </span>
+            <span className="text-sm font-semibold text-muted-foreground">Clip {index + 1}</span>
             <Badge variant="secondary" className="text-xs">
               {formatDuration(duration)}
             </Badge>
@@ -108,9 +107,7 @@ export function ClipCard({
           {isLoading ? (
             <div className="w-full h-full flex flex-col items-center justify-center bg-linear-to-br from-muted to-muted-foreground/10 animate-pulse">
               <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mb-3" />
-              <p className="text-sm text-muted-foreground font-medium">
-                Generating clip...
-              </p>
+              <p className="text-sm text-muted-foreground font-medium">Generating clip...</p>
               <p className="text-xs text-muted-foreground mt-1">
                 Cropping video with face tracking
               </p>
@@ -144,58 +141,56 @@ export function ClipCard({
         </div>
 
         {/* Clip Summary */}
-        <p className="text-sm text-foreground line-clamp-3 leading-relaxed mb-3">
-          {summary}
-        </p>
+        <p className="text-sm text-foreground line-clamp-3 leading-relaxed mb-3">{summary}</p>
 
         {/* Template Selector */}
         {hasSubtitles && videoUrl && !isLoading && (
           <div className="mb-3">
-            <label className="text-xs text-muted-foreground mb-1.5 block">
-              Subtitle Style
-            </label>
+            <label className="text-xs text-muted-foreground mb-1.5 block">Subtitle Style</label>
             <Select value={template} onValueChange={onTemplateChange}>
               <SelectTrigger className="w-full h-9">
                 <SelectValue placeholder="Select template" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="viral">
-                  🔥 Viral - Bold & Energetic
-                </SelectItem>
-                <SelectItem value="hormozi">
-                  💪 Hormozi - High Energy
-                </SelectItem>
-                <SelectItem value="mrbeast">
-                  🎮 MrBeast - Comic Style
-                </SelectItem>
-                <SelectItem value="mrbeastemoji">
-                  😎 MrBeast + Emoji
-                </SelectItem>
-                <SelectItem value="highlight">
-                  💜 Highlight - Word Sweep
-                </SelectItem>
-                <SelectItem value="colorshift">
-                  🌈 Color Shift - Yellow to Green
-                </SelectItem>
-                <SelectItem value="modern">
-                  🎨 Modern - Contemporary
-                </SelectItem>
-                <SelectItem value="minimal">
-                  ✨ Minimal - Clean & Simple
-                </SelectItem>
-                <SelectItem value="default">
-                  📝 Default - Standard
-                </SelectItem>
+                <SelectItem value="viral">🔥 Viral - Bold & Energetic</SelectItem>
+                <SelectItem value="hormozi">💪 Hormozi - High Energy</SelectItem>
+                <SelectItem value="mrbeast">🎮 MrBeast - Comic Style</SelectItem>
+                <SelectItem value="mrbeastemoji">😎 MrBeast + Emoji</SelectItem>
+                <SelectItem value="highlight">💜 Highlight - Word Sweep</SelectItem>
+                <SelectItem value="colorshift">🌈 Color Shift - Yellow to Green</SelectItem>
+                <SelectItem value="modern">🎨 Modern - Contemporary</SelectItem>
+                <SelectItem value="minimal">✨ Minimal - Clean & Simple</SelectItem>
+                <SelectItem value="default">📝 Default - Standard</SelectItem>
               </SelectContent>
             </Select>
           </div>
         )}
 
-        {/* Subtitle Count */}
+        {/* Subtitle Count & Export */}
         {hasSubtitles && (
-          <p className="text-xs text-muted-foreground">
-            {subtitles.length} subtitle segments
-          </p>
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-muted-foreground">{subtitles.length} subtitle segments</p>
+            <div className="flex gap-1">
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 px-2 text-xs"
+                onClick={() => downloadSrt(subtitles, `clip-${index + 1}`)}
+              >
+                <Download className="w-3 h-3 mr-1" />
+                SRT
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 px-2 text-xs"
+                onClick={() => downloadVtt(subtitles, `clip-${index + 1}`)}
+              >
+                <FileText className="w-3 h-3 mr-1" />
+                VTT
+              </Button>
+            </div>
+          </div>
         )}
       </CardContent>
 

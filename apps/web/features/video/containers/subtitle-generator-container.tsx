@@ -11,10 +11,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@workspace/ui/components/select';
-import { AlertCircle, CheckCircle2, Upload, Video } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Download, FileText, Upload, Video } from 'lucide-react';
 import { SubtitleEditor } from '../components/subtitle-editor';
 import { TemplateSelector } from '../components/template-selector';
 import { useSubtitleGeneration } from '../hooks/use-subtitle-generation';
+import { downloadSrt, downloadVtt } from '../lib/subtitle-export';
 
 const LANGUAGE_OPTIONS = [
   { value: 'auto', label: 'Auto-detect' },
@@ -66,9 +67,7 @@ export function SubtitleGeneratorContainer() {
       <div className="space-y-8">
         {/* Header */}
         <div className="space-y-2">
-          <h1 className="text-4xl font-bold tracking-tight">
-            Subtitle Generator
-          </h1>
+          <h1 className="text-4xl font-bold tracking-tight">Subtitle Generator</h1>
           <p className="text-muted-foreground text-lg">
             Upload a video, generate subtitles, and render with your preferred style
           </p>
@@ -110,12 +109,8 @@ export function SubtitleGeneratorContainer() {
           <Card className="p-6">
             <div className="space-y-6">
               <div>
-                <h2 className="text-2xl font-semibold mb-2">
-                  Step 1: Upload Video
-                </h2>
-                <p className="text-muted-foreground">
-                  Select a video file to generate subtitles
-                </p>
+                <h2 className="text-2xl font-semibold mb-2">Step 1: Upload Video</h2>
+                <p className="text-muted-foreground">Select a video file to generate subtitles</p>
               </div>
 
               <div className="space-y-4">
@@ -127,12 +122,9 @@ export function SubtitleGeneratorContainer() {
                     <div className="flex flex-col items-center justify-center pt-5 pb-6">
                       <Upload className="w-12 h-12 mb-4 text-muted-foreground" />
                       <p className="mb-2 text-sm text-muted-foreground">
-                        <span className="font-semibold">Click to upload</span> or
-                        drag and drop
+                        <span className="font-semibold">Click to upload</span> or drag and drop
                       </p>
-                      <p className="text-xs text-muted-foreground">
-                        MP4, MOV, AVI (MAX. 500MB)
-                      </p>
+                      <p className="text-xs text-muted-foreground">MP4, MOV, AVI (MAX. 500MB)</p>
                       {file && (
                         <p className="mt-4 text-sm font-medium text-primary">
                           Selected: {file.name}
@@ -187,30 +179,19 @@ export function SubtitleGeneratorContainer() {
             <Card className="p-6">
               <div className="space-y-6">
                 <div>
-                  <h2 className="text-2xl font-semibold mb-2">
-                    Step 2: Edit Subtitles
-                  </h2>
-                  <p className="text-muted-foreground">
-                    Review and edit the generated subtitles
-                  </p>
+                  <h2 className="text-2xl font-semibold mb-2">Step 2: Edit Subtitles</h2>
+                  <p className="text-muted-foreground">Review and edit the generated subtitles</p>
                 </div>
 
-                <SubtitleEditor
-                  subtitles={subtitles}
-                  onSubtitlesChange={updateSubtitles}
-                />
+                <SubtitleEditor subtitles={subtitles} onSubtitlesChange={updateSubtitles} />
               </div>
             </Card>
 
             <Card className="p-6">
               <div className="space-y-6">
                 <div>
-                  <h2 className="text-2xl font-semibold mb-2">
-                    Step 3: Select Template
-                  </h2>
-                  <p className="text-muted-foreground">
-                    Choose a subtitle style for your video
-                  </p>
+                  <h2 className="text-2xl font-semibold mb-2">Step 3: Select Template</h2>
+                  <p className="text-muted-foreground">Choose a subtitle style for your video</p>
                 </div>
 
                 <TemplateSelector
@@ -219,12 +200,7 @@ export function SubtitleGeneratorContainer() {
                 />
 
                 <div className="flex gap-4">
-                  <Button
-                    onClick={renderVideo}
-                    disabled={!canRender}
-                    className="flex-1"
-                    size="lg"
-                  >
+                  <Button onClick={renderVideo} disabled={!canRender} className="flex-1" size="lg">
                     <Video className="mr-2 h-4 w-4" />
                     Render Video with Subtitles
                   </Button>
@@ -242,12 +218,8 @@ export function SubtitleGeneratorContainer() {
           <Card className="p-6">
             <div className="space-y-6">
               <div>
-                <h2 className="text-2xl font-semibold mb-2">
-                  Step 4: Download Your Video
-                </h2>
-                <p className="text-muted-foreground">
-                  Your video with subtitles is ready!
-                </p>
+                <h2 className="text-2xl font-semibold mb-2">Step 4: Download Your Video</h2>
+                <p className="text-muted-foreground">Your video with subtitles is ready!</p>
               </div>
 
               <div className="flex flex-col gap-4">
@@ -257,15 +229,30 @@ export function SubtitleGeneratorContainer() {
                   className="w-full max-w-2xl mx-auto rounded-lg border"
                 />
 
-                <div className="flex gap-4 justify-center">
-                  <Button size="lg" asChild>
-                    <a href={renderedVideoUrl} download>
-                      Download Video
-                    </a>
-                  </Button>
-                  <Button onClick={resetState} variant="outline" size="lg">
-                    Generate Another Video
-                  </Button>
+                <div className="flex flex-col gap-4 items-center">
+                  <div className="flex gap-4">
+                    <Button size="lg" asChild>
+                      <a href={renderedVideoUrl} download>
+                        Download Video
+                      </a>
+                    </Button>
+                    <Button onClick={resetState} variant="outline" size="lg">
+                      Generate Another Video
+                    </Button>
+                  </div>
+
+                  {subtitles.length > 0 && (
+                    <div className="flex gap-3">
+                      <Button size="sm" variant="secondary" onClick={() => downloadSrt(subtitles)}>
+                        <Download className="w-3.5 h-3.5 mr-1.5" />
+                        Export SRT
+                      </Button>
+                      <Button size="sm" variant="secondary" onClick={() => downloadVtt(subtitles)}>
+                        <FileText className="w-3.5 h-3.5 mr-1.5" />
+                        Export VTT
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
