@@ -2,6 +2,7 @@
 
 import type { GeneratedClip, SubtitleSegment, SubtitleTemplate } from '@/features/video';
 import {
+  AspectRatioSelector,
   ClipCard,
   ClipEditModal,
   ProcessingProgress,
@@ -36,6 +37,7 @@ export function VideoContainer() {
     file,
     youtubeUrl,
     inputMode,
+    aspectRatio,
     currentStep,
     transcription,
     analysis,
@@ -46,6 +48,7 @@ export function VideoContainer() {
     setFile,
     setYoutubeUrl,
     setInputMode,
+    setAspectRatio,
     processVideo,
     resetState,
   } = useVideoProcessing({
@@ -104,6 +107,7 @@ export function VideoContainer() {
       duration: clip.end_time - clip.start_time,
       template: 'viral', // Default template
       language: detectedLanguage, // Pass detected language
+      aspectRatio, // Pass selected aspect ratio
       isLoading: true,
     }));
 
@@ -127,6 +131,7 @@ export function VideoContainer() {
             start_time: clip.start_time,
             end_time: clip.end_time,
             crop_mode: 'dynamic',
+            aspect_ratio: aspectRatio,
           }),
         });
 
@@ -261,6 +266,7 @@ export function VideoContainer() {
           subtitles: formattedSubtitles,
           template: clip.template || 'viral',
           language: clip.language || 'en',
+          aspectRatio: clip.aspectRatio || aspectRatio,
         }),
       });
 
@@ -318,6 +324,17 @@ export function VideoContainer() {
         onReset={resetState}
         error={error}
       />
+
+      {/* Aspect Ratio Selector - visible before processing */}
+      {(currentStep === 'idle' || currentStep === 'error') && (file || youtubeUrl) && (
+        <div className="rounded-lg border border-border bg-card p-6 shadow-lg">
+          <h3 className="text-lg font-semibold mb-2">Output Format</h3>
+          <p className="text-sm text-muted-foreground mb-4">
+            Choose the aspect ratio for your clips
+          </p>
+          <AspectRatioSelector selected={aspectRatio} onChange={setAspectRatio} />
+        </div>
+      )}
 
       <ProcessingProgress currentStep={currentStep} progress={progress} error={error} />
 
@@ -390,6 +407,7 @@ export function VideoContainer() {
                 subtitles={clip.subtitles}
                 template={clip.template}
                 language={clip.language}
+                aspectRatio={clip.aspectRatio || aspectRatio}
                 isLoading={clip.isLoading}
                 isRendering={clip.isRendering}
                 onEdit={() => handleEditClip(clip)}
@@ -411,6 +429,7 @@ export function VideoContainer() {
           videoUrl={editingClip.videoUrl}
           subtitles={editingClip.subtitles}
           template={editingClip.template || 'viral'}
+          aspectRatio={editingClip.aspectRatio || aspectRatio}
           onSave={handleSaveEdit}
         />
       )}

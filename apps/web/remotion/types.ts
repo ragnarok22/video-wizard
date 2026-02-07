@@ -1,6 +1,6 @@
 /**
  * Remotion Video Composition Types
- * 
+ *
  * Type definitions for video composition props and subtitle data
  */
 
@@ -10,7 +10,7 @@
 export interface SubtitleSegment {
   id: number;
   start: number; // Time in seconds
-  end: number;   // Time in seconds
+  end: number; // Time in seconds
   text: string;
   words?: WordTiming[];
 }
@@ -27,7 +27,16 @@ export interface WordTiming {
 /**
  * Available caption template types
  */
-export type CaptionTemplate = 'default' | 'viral' | 'minimal' | 'modern';
+export type CaptionTemplate =
+  | 'default'
+  | 'viral'
+  | 'minimal'
+  | 'modern'
+  | 'highlight'
+  | 'colorshift'
+  | 'hormozi'
+  | 'mrbeast'
+  | 'mrbeastemoji';
 
 /**
  * Props for the main video composition

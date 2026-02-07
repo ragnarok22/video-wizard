@@ -41,74 +41,70 @@ class SmartClipper:
         
         logger.info(f"SmartClipper initialized with smoothing_window={smoothing_window}")
     
-    def _calculate_crop_dimensions(self, width: int, height: int) -> Tuple[int, int, bool]:
+    def _calculate_crop_dimensions(
+        self, width: int, height: int, aspect_ratio: Tuple[int, int] = (9, 16)
+    ) -> Tuple[int, int, bool]:
         """
-        Calculate optimal crop dimensions based on source aspect ratio
-        
-        If the video is already in portrait mode (9:16 or more vertical),
-        avoid excessive cropping and only adjust to maintain exact 9:16 ratio.
-        
+        Calculate optimal crop dimensions based on source and target aspect ratio
+
+        If the video already matches the target aspect ratio, avoid excessive
+        cropping and only adjust to maintain exact ratio.
+
         Args:
             width: Source video width
             height: Source video height
-            
+            aspect_ratio: Target aspect ratio as (w, h) tuple, e.g. (9, 16), (1, 1)
+
         Returns:
             Tuple of (crop_width, crop_height, skip_face_detection)
-            skip_face_detection is True when video is already 9:16 compatible
+            skip_face_detection is True when video already matches target ratio
         """
-        # Calculate source aspect ratio
+        ar_w, ar_h = aspect_ratio
+
+        # Calculate source and target aspect ratios
         source_aspect = width / height
-        target_aspect = 9 / 16  # 0.5625
-        
-        # Define tolerance for "already portrait" (e.g., within 15% of target)
+        target_aspect = ar_w / ar_h
+
+        # Define tolerance for "already matching" (e.g., within 15% of target)
         aspect_tolerance = 0.15
         aspect_diff = abs(source_aspect - target_aspect) / target_aspect
-        
-        # Check if video is EXACTLY 9:16 (no cropping needed at all)
-        ideal_width = int(height * 9 / 16)
-        ideal_height = int(width * 16 / 9)
-        
+
+        # Check if video EXACTLY matches the target ratio
+        ideal_width = int(height * ar_w / ar_h)
+        ideal_height = int(width * ar_h / ar_w)
+
         if width == ideal_width and height == ideal_height:
-            # Perfect 9:16 - NO CROPPING NEEDED
             logger.info(
-                f"Video is EXACTLY 9:16 ({width}x{height}). "
+                f"Video is EXACTLY {ar_w}:{ar_h} ({width}x{height}). "
                 f"No cropping or face detection needed. Using original video."
             )
             return (width, height, True)
-        
+
         if aspect_diff <= aspect_tolerance:
-            # Video is already close to 9:16, minimal adjustment
-            # SKIP face detection - just center the video
             logger.info(
                 f"Video aspect ratio {source_aspect:.3f} is close to target {target_aspect:.3f} "
                 f"(diff: {aspect_diff*100:.1f}%). Skipping face detection, using simple center crop."
             )
-            # Calculate minimal crop to achieve exact 9:16
-            ideal_width = int(height * 9 / 16)
-            ideal_height = int(width * 16 / 9)
-            
+            ideal_width = int(height * ar_w / ar_h)
+            ideal_height = int(width * ar_h / ar_w)
+
             if ideal_width <= width:
-                # Crop width, keep full height
                 return (ideal_width, height, True)
             else:
-                # Crop height, keep full width (video is even more vertical)
                 return (width, ideal_height, True)
         elif source_aspect < target_aspect:
-            # Video is more vertical than 9:16 (e.g., 9:18, 9:20)
             logger.info(
-                f"Video aspect ratio {source_aspect:.3f} is more vertical than target. "
-                f"Cropping height to maintain 9:16. Skipping face detection."
+                f"Video aspect ratio {source_aspect:.3f} is more vertical than target {ar_w}:{ar_h}. "
+                f"Cropping height to maintain ratio. Skipping face detection."
             )
-            # Keep full width, crop height, center vertically
-            crop_height = int(width * 16 / 9)
+            crop_height = int(width * ar_h / ar_w)
             return (width, crop_height, True)
         else:
-            # Video is landscape or wider portrait, USE face tracking
             logger.info(
-                f"Video aspect ratio {source_aspect:.3f} requires standard crop to 9:16. "
+                f"Video aspect ratio {source_aspect:.3f} requires standard crop to {ar_w}:{ar_h}. "
                 f"Using face detection for smart framing."
             )
-            crop_width = int(height * 9 / 16)
+            crop_width = int(height * ar_w / ar_h)
             return (crop_width, height, False)
     
     def _get_display_dimensions(self, video_path: str) -> Tuple[int, int]:
@@ -209,64 +205,73 @@ class SmartClipper:
         start_time: float,
         end_time: float,
         output_path: str,
-        crop_mode: str = "dynamic"
+        crop_mode: str = "dynamic",
+        aspect_ratio: Tuple[int, int] = (9, 16)
     ) -> Dict:
         """
-        Create a vertical short clip from a video segment
-        
+        Create a cropped clip from a video segment with the target aspect ratio
+
         Args:
             video_path: Path to source video file
             start_time: Start timestamp in seconds
             end_time: End timestamp in seconds
             output_path: Path for output clip
             crop_mode: "dynamic" for smooth tracking or "static" for fixed center
-            
+            aspect_ratio: Target aspect ratio as (w, h) tuple, e.g. (9, 16), (1, 1)
+
         Returns:
             Dictionary with clip metadata and output path
         """
         if not os.path.exists(video_path):
             raise FileNotFoundError(f"Video file not found: {video_path}")
-        
+
         if start_time >= end_time:
             raise ValueError("start_time must be less than end_time")
-        
+
+        ar_w, ar_h = aspect_ratio
+        ar_label = f"{ar_w}:{ar_h}"
+
         logger.info("="*70)
-        logger.info(f"🎬 CREATING CLIP: {start_time}s to {end_time}s ({crop_mode} mode)")
+        logger.info(f"🎬 CREATING CLIP: {start_time}s to {end_time}s ({crop_mode} mode, {ar_label})")
         logger.info(f"📁 Input video: {video_path}")
         logger.info("="*70)
-        
+
         # Get video dimensions with rotation applied (display dimensions)
         width, height = self._get_display_dimensions(video_path)
-        aspect_ratio = width / height
-        
+        source_aspect = width / height
+
         logger.info(f"📐 INPUT VIDEO DIMENSIONS (with rotation applied):")
         logger.info(f"   • Width: {width}px")
         logger.info(f"   • Height: {height}px")
-        logger.info(f"   • Aspect Ratio: {aspect_ratio:.4f} ({width}:{height})")
-        
+        logger.info(f"   • Aspect Ratio: {source_aspect:.4f} ({width}:{height})")
+
         # Identify format
-        if abs(aspect_ratio - 0.5625) < 0.01:
+        if abs(source_aspect - 0.5625) < 0.01:
             format_name = "9:16 Portrait"
-        elif abs(aspect_ratio - 1.7778) < 0.01:
+        elif abs(source_aspect - 1.7778) < 0.01:
             format_name = "16:9 Landscape"
-        elif aspect_ratio < 0.7:
+        elif abs(source_aspect - 1.0) < 0.05:
+            format_name = "Square"
+        elif source_aspect < 0.7:
             format_name = "Vertical Portrait"
-        elif aspect_ratio > 1.3:
+        elif source_aspect > 1.3:
             format_name = "Horizontal Landscape"
         else:
             format_name = "Square-ish"
         logger.info(f"   • Format: {format_name}")
+        logger.info(f"   • Target: {ar_label}")
         logger.info("")
-        
-        crop_width, crop_height, skip_face_detection = self._calculate_crop_dimensions(width, height)
-        
+
+        crop_width, crop_height, skip_face_detection = self._calculate_crop_dimensions(
+            width, height, aspect_ratio
+        )
+
         logger.info(f"🎯 CROP DECISION:")
-        logger.info(f"   • Target crop: {crop_width}x{crop_height} (9:16)")
+        logger.info(f"   • Target crop: {crop_width}x{crop_height} ({ar_label})")
         logger.info(f"   • Face detection: {'❌ SKIPPED' if skip_face_detection else '✅ ENABLED'}")
-        
+
         if skip_face_detection:
-            # Video is already 9:16 compatible - use simple center crop, no face detection
-            logger.info(f"   • Reason: Video is 9:16 compatible, no cropping needed")
+            logger.info(f"   • Reason: Video is {ar_label} compatible, no significant cropping needed")
             logger.info(f"   • Crop mode: Static center")
             center_x = max(0, (width - crop_width) // 2)
             center_y = max(0, (height - crop_height) // 2)
@@ -286,15 +291,15 @@ class SmartClipper:
                 crop_width,
                 crop_height
             )
-            
+
             if not crop_coordinates:
                 logger.warning("No faces detected, using center crop")
                 center_x = max(0, (width - crop_width) // 2)
                 crop_coordinates = [center_x] * 100  # Dummy data for static crop
-        
+
         # Phase M: Smooth the coordinates
         smoothed_coords = self._smooth_coordinates(crop_coordinates)
-        
+
         # Phase N: Render the clip
         result = self._render_clip(
             video_path,
@@ -308,7 +313,7 @@ class SmartClipper:
             crop_width,
             crop_height
         )
-        
+
         return result
     
     def _track_faces_in_range(

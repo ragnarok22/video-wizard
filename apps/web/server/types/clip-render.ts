@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 /**
  * Clip Rendering Types
- * 
+ *
  * Types for integration with Python processing-engine /render-clip endpoint
  */
 
@@ -15,6 +15,7 @@ export const ClipRenderRequestSchema = z.object({
   end_time: z.number(),
   crop_mode: z.enum(['dynamic', 'static']).default('dynamic'),
   output_path: z.string().optional(),
+  aspect_ratio: z.enum(['9:16', '1:1', '4:5', '16:9']).optional().default('9:16'),
 });
 
 /**

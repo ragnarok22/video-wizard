@@ -40,6 +40,7 @@ export interface RenderSubtitlesInput {
   subtitles: SubtitleSegment[];
   template: CaptionTemplate;
   language: string;
+  aspectRatio?: string;
 }
 
 export interface RenderSubtitlesResult {
@@ -129,11 +130,14 @@ export class SubtitleGenerationService {
       // Use internal URL for container-to-container communication
       const vUrl = new URL(`${this.pythonEngineInternalUrl}/${input.videoPath}`).toString();
 
+      const aspectRatio = input.aspectRatio || '9:16';
+
       console.log('Creating render job:', {
         vUrl,
         subtitleCount: formattedSubtitles.length,
         template: input.template,
         language: input.language,
+        aspectRatio,
         durationInFrames,
       });
 
@@ -150,6 +154,7 @@ export class SubtitleGenerationService {
             subtitles: formattedSubtitles,
             template: input.template,
             language: input.language,
+            aspectRatio,
             backgroundColor: '#000000',
             durationInFrames,
           },

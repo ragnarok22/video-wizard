@@ -19,10 +19,12 @@ from renderer import VideoRenderer
 from audio_service import get_audio_service
 from smart_clipper import SmartClipper
 from config import (
-    WHISPER_MODEL, 
-    USE_OPENAI_API, 
+    WHISPER_MODEL,
+    USE_OPENAI_API,
     OPENAI_API_KEY,
-    DEFAULT_TRANSCRIPTION_LANGUAGE
+    DEFAULT_TRANSCRIPTION_LANGUAGE,
+    ASPECT_RATIO_PRESETS,
+    ALLOWED_ASPECT_RATIOS,
 )
 
 # Configure logging
@@ -103,6 +105,7 @@ class RenderClipRequest(BaseModel):
     end_time: float
     crop_mode: Optional[str] = "dynamic"
     output_path: Optional[str] = None
+    aspect_ratio: Optional[str] = "9:16"  # "9:16", "1:1", "4:5", "16:9"
 
 
 class RenderClipResponse(BaseModel):
@@ -381,19 +384,29 @@ async def render_clip(request: RenderClipRequest):
             timestamp = int(request.start_time)
             output_path = str(OUTPUT_DIR / f"{filename}_clip_{timestamp}s.mp4")
         
+        # Parse aspect ratio
+        ar_str = request.aspect_ratio or "9:16"
+        if ar_str not in ALLOWED_ASPECT_RATIOS:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid aspect_ratio '{ar_str}'. Allowed: {ALLOWED_ASPECT_RATIOS}"
+            )
+        ar_tuple = ASPECT_RATIO_PRESETS[ar_str]
+
         logger.info(
             f"Rendering clip: {video_path} "
             f"[{request.start_time}s - {request.end_time}s] "
-            f"mode={request.crop_mode} -> {output_path}"
+            f"mode={request.crop_mode} ratio={ar_str} -> {output_path}"
         )
-        
+
         # Create the clip using SmartClipper
         result = smart_clipper.create_clip(
             video_path=video_path,
             start_time=request.start_time,
             end_time=request.end_time,
             output_path=output_path,
-            crop_mode=request.crop_mode
+            crop_mode=request.crop_mode,
+            aspect_ratio=ar_tuple
         )
         
         # Generate accessible URL for the output file

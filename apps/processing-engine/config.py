@@ -23,8 +23,17 @@ MIN_DETECTION_CONFIDENCE = 0.5  # Face detection confidence threshold
 SMOOTHING_WINDOW_SIZE = 15  # Moving average window size
 
 # Video Processing Settings
-TARGET_ASPECT_RATIO = (9, 16)  # Output aspect ratio (width, height)
+TARGET_ASPECT_RATIO = (9, 16)  # Default output aspect ratio (width, height)
 DEFAULT_QUALITY = "high"  # Video encoding quality
+
+# Supported aspect ratio presets: { "label": (width_ratio, height_ratio) }
+ASPECT_RATIO_PRESETS = {
+    "9:16": (9, 16),   # Vertical - TikTok, Reels, Stories
+    "1:1": (1, 1),     # Square - Instagram Posts
+    "4:5": (4, 5),     # Portrait - Instagram Feed
+    "16:9": (16, 9),   # Landscape - YouTube, Standard
+}
+ALLOWED_ASPECT_RATIOS = list(ASPECT_RATIO_PRESETS.keys())
 
 # Audio & Transcription Settings
 USE_OPENAI_API = os.getenv("USE_OPENAI_API", "true").lower() == "true"  # Use OpenAI API instead of local Whisper

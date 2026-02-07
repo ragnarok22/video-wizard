@@ -3,13 +3,15 @@
 import { Player } from '@remotion/player';
 import { VideoComposition } from '@workspace/remotion-compositions';
 import { useMemo } from 'react';
-import type { SubtitleSegment, SubtitleTemplate } from '../types';
+import type { AspectRatio, SubtitleSegment, SubtitleTemplate } from '../types';
+import { getDimensions } from '../lib/aspect-ratios';
 
 interface RemotionPreviewProps {
   videoUrl: string;
   subtitles: SubtitleSegment[];
   template: SubtitleTemplate;
   language?: string;
+  aspectRatio?: AspectRatio;
   className?: string;
 }
 
@@ -25,8 +27,10 @@ export function RemotionPreview({
   subtitles,
   template,
   language = 'en',
+  aspectRatio = '9:16',
   className = '',
 }: RemotionPreviewProps) {
+  const { width: compositionWidth, height: compositionHeight } = getDimensions(aspectRatio);
   // Convert subtitles to Remotion format (timestamps in seconds)
   const remotionSubtitles = useMemo(
     () =>
@@ -60,15 +64,14 @@ export function RemotionPreview({
     [videoUrl, remotionSubtitles, template, language]
   );
 
-
   return (
     <div className={`remotion-preview-container ${className}`}>
       <Player
         component={VideoComposition}
         inputProps={inputProps}
         durationInFrames={durationInFrames}
-        compositionWidth={1080}
-        compositionHeight={1920}
+        compositionWidth={compositionWidth}
+        compositionHeight={compositionHeight}
         fps={30}
         style={{
           width: '100%',

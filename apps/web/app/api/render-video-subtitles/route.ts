@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { subtitleGenerationService } from '@/server/services/subtitle-generation-service';
-import type { CaptionTemplate } from '@remotion/compositions/types';
+import type { CaptionTemplate } from '@/remotion/types';
 
 /**
  * POST /api/render-video-subtitles
@@ -20,7 +20,13 @@ import type { CaptionTemplate } from '@remotion/compositions/types';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { videoPath, subtitles, template = 'viral', language = 'en' } = body;
+    const {
+      videoPath,
+      subtitles,
+      template = 'viral',
+      language = 'en',
+      aspectRatio = '9:16',
+    } = body;
 
     if (!videoPath) {
       return NextResponse.json(
@@ -40,6 +46,7 @@ export async function POST(request: NextRequest) {
       videoPath,
       template,
       language,
+      aspectRatio,
       subtitleCount: subtitles.length,
     });
 
@@ -48,6 +55,7 @@ export async function POST(request: NextRequest) {
       subtitles,
       template: template as CaptionTemplate,
       language,
+      aspectRatio,
     });
 
     return NextResponse.json({

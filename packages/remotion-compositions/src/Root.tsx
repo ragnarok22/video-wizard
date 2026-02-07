@@ -1,37 +1,16 @@
-import { zColor } from '@remotion/zod-types';
 import { Composition } from 'remotion';
-import { z } from 'zod';
 import { VideoComposition } from './compositions/VideoComposition';
+import type { VideoCompositionProps } from './types';
 
 /**
- * Zod Schema for VideoWithSubtitles composition
- * Ensures type safety for input props
+ * Aspect ratio dimension map for calculating composition width/height
  */
-export const videoWithSubtitlesSchema = z.object({
-  videoUrl: z.string().url(),
-  subtitles: z.array(
-    z.object({
-      id: z.number(),
-      start: z.number(),
-      end: z.number(),
-      text: z.string(),
-      words: z
-        .array(
-          z.object({
-            word: z.string(),
-            start: z.number(),
-            end: z.number(),
-          })
-        )
-        .optional(),
-    })
-  ),
-  template: z.enum(['default', 'viral', 'minimal', 'modern', 'highlight', 'colorshift', 'hormozi', 'mrbeast', 'mrbeastemoji']),
-  backgroundColor: zColor().optional(),
-  videoStartTime: z.number().optional(),
-  durationInFrames: z.number().optional(),
-  language: z.string().optional(),
-});
+const ASPECT_DIMENSIONS: Record<string, { width: number; height: number }> = {
+  '9:16': { width: 1080, height: 1920 },
+  '1:1': { width: 1080, height: 1080 },
+  '4:5': { width: 1080, height: 1350 },
+  '16:9': { width: 1920, height: 1080 },
+};
 
 /**
  * Remotion Root Component
@@ -44,20 +23,32 @@ export const RemotionRoot: React.FC = () => {
     <>
       <Composition
         id="VideoWithSubtitles"
-        component={VideoComposition as React.ComponentType<any>}
+        component={VideoComposition as unknown as React.ComponentType<Record<string, unknown>>}
         durationInFrames={300}
         fps={30}
         width={1080}
         height={1920}
-        schema={videoWithSubtitlesSchema}
         calculateMetadata={({ props }) => {
-          const { subtitles, durationInFrames } = props;
+          const { subtitles, durationInFrames, aspectRatio } =
+            props as unknown as VideoCompositionProps & {
+              aspectRatio?: string;
+              durationInFrames?: number;
+            };
           const fps = 30;
+
+          // Calculate dimensions from aspect ratio
+          const dims = aspectRatio ? ASPECT_DIMENSIONS[aspectRatio] : undefined;
+          const dimensionOverrides = dims ? { width: dims.width, height: dims.height } : {};
 
           // If durationInFrames is explicitly provided, use it
           if (durationInFrames) {
-            console.log('[Remotion] Using explicit durationInFrames:', durationInFrames);
-            return { durationInFrames };
+            console.log(
+              '[Remotion] Using explicit durationInFrames:',
+              durationInFrames,
+              'aspectRatio:',
+              aspectRatio
+            );
+            return { durationInFrames, ...dimensionOverrides };
           }
 
           // Calculate from last subtitle's end time
@@ -72,42 +63,47 @@ export const RemotionRoot: React.FC = () => {
               durationInSeconds,
               durationInFrames: calculatedDuration,
               subtitleCount: subtitles.length,
+              aspectRatio,
             });
 
             return {
               durationInFrames: calculatedDuration,
+              ...dimensionOverrides,
             };
           }
 
           // Fallback to default 10 seconds
           console.log('[Remotion] Using fallback duration: 300 frames');
-          return { durationInFrames: 300 };
+          return { durationInFrames: 300, ...dimensionOverrides };
         }}
-        defaultProps={{
-          videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
-          subtitles: [
-            {
-              id: 1,
-              start: 0,
-              end: 2000,
-              text: 'Welcome to Video Wizard',
-            },
-            {
-              id: 2,
-              start: 2000,
-              end: 4000,
-              text: 'Create amazing videos with AI-powered subtitles',
-            },
-            {
-              id: 3,
-              start: 4000,
-              end: 6000,
-              text: 'Choose from multiple templates',
-            },
-          ],
-          template: 'default',
-          backgroundColor: '#000000',
-        }}
+        defaultProps={
+          {
+            videoUrl:
+              'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+            subtitles: [
+              {
+                id: 1,
+                start: 0,
+                end: 2000,
+                text: 'Welcome to Video Wizard',
+              },
+              {
+                id: 2,
+                start: 2000,
+                end: 4000,
+                text: 'Create amazing videos with AI-powered subtitles',
+              },
+              {
+                id: 3,
+                start: 4000,
+                end: 6000,
+                text: 'Choose from multiple templates',
+              },
+            ],
+            template: 'default',
+            backgroundColor: '#000000',
+          } as VideoCompositionProps
+        }
       />
     </>
   );

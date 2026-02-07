@@ -12,7 +12,8 @@ import {
 } from '@workspace/ui/components/select';
 import { Download, Edit, FileText, Film, Loader2, Play, Sparkles } from 'lucide-react';
 import { useState } from 'react';
-import type { SubtitleSegment, SubtitleTemplate } from '../types';
+import type { AspectRatio, SubtitleSegment, SubtitleTemplate } from '../types';
+import { getAspectClass } from '../lib/aspect-ratios';
 import { downloadSrt, downloadVtt } from '../lib/subtitle-export';
 import { RemotionPreview } from './remotion-preview';
 
@@ -26,6 +27,7 @@ interface ClipCardProps {
   subtitles?: SubtitleSegment[];
   template?: SubtitleTemplate;
   language?: string; // Language code for emoji template
+  aspectRatio?: AspectRatio;
   isLoading: boolean;
   isRendering?: boolean;
   onEdit: () => void;
@@ -52,6 +54,7 @@ export function ClipCard({
   subtitles,
   template = 'viral',
   language = 'en',
+  aspectRatio = '9:16',
   isLoading,
   isRendering,
   onEdit,
@@ -103,7 +106,9 @@ export function ClipCard({
 
       <CardContent className="pb-3">
         {/* Video Preview */}
-        <div className="aspect-9/16 max-w-70 mx-auto mb-4 rounded-lg overflow-hidden bg-muted">
+        <div
+          className={`${getAspectClass(aspectRatio)} max-w-70 mx-auto mb-4 rounded-lg overflow-hidden bg-muted`}
+        >
           {isLoading ? (
             <div className="w-full h-full flex flex-col items-center justify-center bg-linear-to-br from-muted to-muted-foreground/10 animate-pulse">
               <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mb-3" />
@@ -119,6 +124,7 @@ export function ClipCard({
               subtitles={subtitles}
               template={template}
               language={language}
+              aspectRatio={aspectRatio}
               className="w-full h-full"
             />
           ) : videoUrl ? (

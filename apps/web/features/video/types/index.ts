@@ -5,6 +5,9 @@
  */
 
 import type { ContentAnalysis } from '@/server/types/content-analysis';
+import type { AspectRatio } from '../lib/aspect-ratios';
+
+export type { AspectRatio } from '../lib/aspect-ratios';
 
 export interface TranscriptSegment {
   id: number;
@@ -38,6 +41,7 @@ export interface VideoProcessingState {
   file: File | null;
   youtubeUrl: string;
   inputMode: VideoInputMode;
+  aspectRatio: AspectRatio;
   currentStep: ProcessingStep;
   uploadedPath: string;
   transcription: TranscriptionResult | null;
@@ -86,6 +90,7 @@ export interface GeneratedClip {
   subtitles?: SubtitleSegment[];
   template?: SubtitleTemplate; // Current template selection
   language?: string; // Language code for emoji template
+  aspectRatio?: AspectRatio; // Aspect ratio for this clip
   isLoading: boolean;
   isRendering?: boolean; // True when rendering final video
   error?: string;

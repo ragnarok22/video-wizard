@@ -1,14 +1,14 @@
-"use client";
+'use client';
 
-import { Button } from "@workspace/ui/components/button";
+import { Button } from '@workspace/ui/components/button';
 import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from "@workspace/ui/components/dialog";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@workspace/ui/components/dialog';
 import {
   Select,
   SelectContent,
@@ -16,9 +16,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@workspace/ui/components/select';
-import { Loader2, Save } from "lucide-react";
-import { useState } from "react";
-import type { SubtitleSegment, SubtitleTemplate } from '../types';
+import { Loader2, Save } from 'lucide-react';
+import { useState } from 'react';
+import type { AspectRatio, SubtitleSegment, SubtitleTemplate } from '../types';
+import { getAspectClass } from '../lib/aspect-ratios';
 import { RemotionPreview } from './remotion-preview';
 
 interface ClipEditModalProps {
@@ -29,6 +30,7 @@ interface ClipEditModalProps {
   videoUrl: string;
   subtitles: SubtitleSegment[];
   template: SubtitleTemplate;
+  aspectRatio?: AspectRatio;
   onSave: (editedSubtitles: SubtitleSegment[], template: SubtitleTemplate) => Promise<void>;
 }
 
@@ -49,6 +51,7 @@ export function ClipEditModal({
   videoUrl,
   subtitles,
   template: initialTemplate,
+  aspectRatio = '9:16',
   onSave,
 }: ClipEditModalProps) {
   const [editedSubtitles, setEditedSubtitles] = useState<SubtitleSegment[]>(subtitles);
@@ -65,7 +68,7 @@ export function ClipEditModal({
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = (seconds % 60).toFixed(1);
-    return `${mins}:${secs.padStart(4, "0")}`;
+    return `${mins}:${secs.padStart(4, '0')}`;
   };
 
   // Handle subtitle text edit
@@ -82,7 +85,7 @@ export function ClipEditModal({
       await onSave(editedSubtitles, selectedTemplate);
       onClose();
     } catch (error) {
-      console.error("Failed to save subtitles:", error);
+      console.error('Failed to save subtitles:', error);
     } finally {
       setIsSaving(false);
     }
@@ -101,7 +104,10 @@ export function ClipEditModal({
           <label className="text-sm font-medium text-muted-foreground mb-2 block">
             Subtitle Style
           </label>
-          <Select value={selectedTemplate} onValueChange={setSelectedTemplate}>
+          <Select
+            value={selectedTemplate}
+            onValueChange={(v) => setSelectedTemplate(v as SubtitleTemplate)}
+          >
             <SelectTrigger className="w-full">
               <SelectValue placeholder="Select template" />
             </SelectTrigger>
@@ -137,11 +143,14 @@ export function ClipEditModal({
         <div className="flex gap-6 flex-1 overflow-hidden">
           {/* Video Preview with Remotion Player */}
           <div className="shrink-0 w-80">
-            <div className="aspect-9/16 rounded-lg overflow-hidden bg-black sticky top-0">
+            <div
+              className={`${getAspectClass(aspectRatio)} rounded-lg overflow-hidden bg-black sticky top-0`}
+            >
               <RemotionPreview
                 videoUrl={videoUrl}
                 subtitles={editedSubtitles}
                 template={selectedTemplate}
+                aspectRatio={aspectRatio}
                 className="w-full h-full"
               />
             </div>

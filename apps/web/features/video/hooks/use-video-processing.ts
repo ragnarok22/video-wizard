@@ -4,7 +4,12 @@ import type { ContentAnalysis } from '@/lib/types/content-intelligence';
 import { useState } from 'react';
 import { formatTranscriptForAI, getPythonEngineUrl, validateVideoFile } from '../lib/utils';
 import { isYouTubeUrl } from '../lib/youtube';
-import type { TranscriptionResult, VideoInputMode, VideoProcessingState } from '../types';
+import type {
+  AspectRatio,
+  TranscriptionResult,
+  VideoInputMode,
+  VideoProcessingState,
+} from '../types';
 
 interface UseVideoProcessingOptions {
   onComplete?: (
@@ -25,6 +30,7 @@ export function useVideoProcessing(options?: UseVideoProcessingOptions) {
     file: null,
     youtubeUrl: '',
     inputMode: 'file',
+    aspectRatio: '9:16' as AspectRatio,
     currentStep: 'idle',
     uploadedPath: '',
     transcription: null,
@@ -63,11 +69,16 @@ export function useVideoProcessing(options?: UseVideoProcessingOptions) {
     setState((prev) => ({ ...prev, ...updates }));
   };
 
+  const setAspectRatio = (aspectRatio: AspectRatio) => {
+    setState((prev) => ({ ...prev, aspectRatio }));
+  };
+
   const resetState = () => {
     setState({
       file: null,
       youtubeUrl: '',
       inputMode: 'file',
+      aspectRatio: '9:16' as AspectRatio,
       currentStep: 'idle',
       uploadedPath: '',
       transcription: null,
@@ -210,6 +221,7 @@ export function useVideoProcessing(options?: UseVideoProcessingOptions) {
     setFile,
     setYoutubeUrl,
     setInputMode,
+    setAspectRatio,
     processVideo,
     resetState,
   };

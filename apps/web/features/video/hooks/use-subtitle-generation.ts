@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import type { CaptionTemplate } from '@remotion/compositions/types';
+import type { CaptionTemplate } from '@/remotion/types';
+import type { AspectRatio } from '../lib/aspect-ratios';
 import { getPythonEngineUrl, validateVideoFile } from '../lib/utils';
 import { isYouTubeUrl } from '../lib/youtube';
 
@@ -26,6 +27,7 @@ export interface SubtitleGenerationState {
   file: File | null;
   youtubeUrl: string;
   inputMode: VideoInputMode;
+  aspectRatio: AspectRatio;
   currentStep: SubtitleGenerationStep;
   uploadedPath: string;
   subtitles: SubtitleSegment[];
@@ -51,6 +53,7 @@ export function useSubtitleGeneration(options?: UseSubtitleGenerationOptions) {
     file: null,
     youtubeUrl: '',
     inputMode: 'file',
+    aspectRatio: '9:16' as AspectRatio,
     currentStep: 'idle',
     uploadedPath: '',
     subtitles: [],
@@ -86,6 +89,10 @@ export function useSubtitleGeneration(options?: UseSubtitleGenerationOptions) {
     setState((prev) => ({ ...prev, inputMode, error: '' }));
   };
 
+  const setAspectRatio = (aspectRatio: AspectRatio) => {
+    setState((prev) => ({ ...prev, aspectRatio }));
+  };
+
   const setLanguage = (language: string) => {
     setState((prev) => ({ ...prev, language }));
   };
@@ -107,6 +114,7 @@ export function useSubtitleGeneration(options?: UseSubtitleGenerationOptions) {
       file: null,
       youtubeUrl: '',
       inputMode: 'file',
+      aspectRatio: '9:16' as AspectRatio,
       currentStep: 'idle',
       uploadedPath: '',
       subtitles: [],
@@ -244,6 +252,7 @@ export function useSubtitleGeneration(options?: UseSubtitleGenerationOptions) {
           subtitles: state.subtitles,
           template: state.selectedTemplate,
           language: state.language,
+          aspectRatio: state.aspectRatio,
         }),
       });
 
@@ -280,6 +289,7 @@ export function useSubtitleGeneration(options?: UseSubtitleGenerationOptions) {
     setFile,
     setYoutubeUrl,
     setInputMode,
+    setAspectRatio,
     setLanguage,
     setTemplate,
     updateSubtitles,

@@ -14,6 +14,7 @@ import {
 } from '@workspace/ui/components/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@workspace/ui/components/tabs';
 import { AlertCircle, CheckCircle2, Download, FileText, Link, Upload, Video } from 'lucide-react';
+import { AspectRatioSelector } from '../components/aspect-ratio-selector';
 import { SubtitleEditor } from '../components/subtitle-editor';
 import { TemplateSelector } from '../components/template-selector';
 import type { VideoInputMode } from '../hooks/use-subtitle-generation';
@@ -39,6 +40,7 @@ export function SubtitleGeneratorContainer() {
     file,
     youtubeUrl,
     inputMode,
+    aspectRatio,
     currentStep,
     subtitles,
     language,
@@ -49,6 +51,7 @@ export function SubtitleGeneratorContainer() {
     setFile,
     setYoutubeUrl,
     setInputMode,
+    setAspectRatio,
     setLanguage,
     setTemplate,
     updateSubtitles,
@@ -248,14 +251,22 @@ export function SubtitleGeneratorContainer() {
             <Card className="p-6">
               <div className="space-y-6">
                 <div>
-                  <h2 className="text-2xl font-semibold mb-2">Step 3: Select Template</h2>
-                  <p className="text-muted-foreground">Choose a subtitle style for your video</p>
+                  <h2 className="text-2xl font-semibold mb-2">Step 3: Configure Output</h2>
+                  <p className="text-muted-foreground">Choose aspect ratio and subtitle style</p>
                 </div>
 
-                <TemplateSelector
-                  selectedTemplate={selectedTemplate}
-                  onTemplateChange={setTemplate}
-                />
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Output Format</label>
+                  <AspectRatioSelector selected={aspectRatio} onChange={setAspectRatio} />
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Subtitle Style</label>
+                  <TemplateSelector
+                    selectedTemplate={selectedTemplate}
+                    onTemplateChange={setTemplate}
+                  />
+                </div>
 
                 <div className="flex gap-4">
                   <Button onClick={renderVideo} disabled={!canRender} className="flex-1" size="lg">

@@ -1,6 +1,6 @@
 'use client';
 
-import type { CaptionTemplate } from '@remotion/compositions/types';
+import type { CaptionTemplate } from '@/remotion/types';
 import { Card } from '@workspace/ui/components/card';
 import { Label } from '@workspace/ui/components/label';
 import { RadioGroup, RadioGroupItem } from '@workspace/ui/components/radio-group';
@@ -74,9 +74,7 @@ export function TemplateSelector({
     <div className="space-y-4">
       <div>
         <h3 className="text-lg font-semibold mb-2">Select Subtitle Template</h3>
-        <p className="text-sm text-muted-foreground">
-          Choose a style for your video subtitles
-        </p>
+        <p className="text-sm text-muted-foreground">Choose a style for your video subtitles</p>
       </div>
 
       <RadioGroup
@@ -98,16 +96,10 @@ export function TemplateSelector({
               htmlFor={template.value}
               className="flex items-start space-x-3 p-4 cursor-pointer"
             >
-              <RadioGroupItem
-                value={template.value}
-                id={template.value}
-                className="mt-1"
-              />
+              <RadioGroupItem value={template.value} id={template.value} className="mt-1" />
               <div className="flex-1 space-y-1">
                 <p className="font-medium leading-none">{template.label}</p>
-                <p className="text-sm text-muted-foreground">
-                  {template.description}
-                </p>
+                <p className="text-sm text-muted-foreground">{template.description}</p>
               </div>
             </label>
           </Card>

@@ -11,15 +11,15 @@ interface InputSubtitle {
 
 /**
  * POST /api/render-with-subtitles
- * 
+ *
  * Regenerate a video clip with edited subtitles using Remotion Render Server
- * 
+ *
  * Request body:
  * - clipPath: string - Path to the clip video file
  * - subtitles: Array<{start: number, end: number, text: string}> - Edited subtitles
  * - template?: string - Template to use (default, viral, minimal, modern, mrbeastemoji, etc.)
  * - language?: string - Language code for emoji template (e.g., 'en', 'es')
- * 
+ *
  * Response:
  * - success: boolean
  * - data: { videoUrl: string, jobId: string }
@@ -28,7 +28,7 @@ interface InputSubtitle {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { clipPath, subtitles, template = 'viral', language = 'en' } = body;
+    const { clipPath, subtitles, template = 'viral', language = 'en', aspectRatio = '9:16' } = body;
 
     if (!clipPath) {
       return NextResponse.json(
@@ -47,10 +47,11 @@ export async function POST(request: NextRequest) {
     // Get Remotion Render Server URL from environment
     const REMOTION_SERVER_URL = process.env.REMOTION_SERVER_URL || 'http://localhost:3001';
     const PYTHON_ENGINE_URL = process.env.NEXT_PUBLIC_PYTHON_ENGINE_URL || 'http://localhost:8000';
-    
+
     // For Docker: Use container name when Remotion needs to access the processing engine
     // The Remotion server runs in a container and needs to access videos from the processing engine
-    const PYTHON_ENGINE_INTERNAL_URL = process.env.PYTHON_ENGINE_INTERNAL_URL || 'http://processing-engine:8000';
+    const PYTHON_ENGINE_INTERNAL_URL =
+      process.env.PYTHON_ENGINE_INTERNAL_URL || 'http://processing-engine:8000';
 
     // Transform subtitles to the expected format
     const formattedSubtitles = (subtitles as InputSubtitle[]).map((sub, index) => ({
@@ -75,6 +76,7 @@ export async function POST(request: NextRequest) {
       subtitleCount: formattedSubtitles.length,
       template,
       language,
+      aspectRatio,
       durationInFrames,
       clipDurationSeconds: clipDurationMs / 1000,
     });
@@ -92,6 +94,7 @@ export async function POST(request: NextRequest) {
           subtitles: formattedSubtitles,
           template,
           language,
+          aspectRatio,
           backgroundColor: '#000000',
           durationInFrames,
         },
@@ -125,7 +128,7 @@ export async function POST(request: NextRequest) {
 
       if (jobStatus.status === 'completed') {
         console.log('Render completed:', jobStatus.videoUrl);
-        
+
         return NextResponse.json({
           success: true,
           data: {
@@ -152,7 +155,7 @@ export async function POST(request: NextRequest) {
     throw new Error('Render job timed out');
   } catch (error) {
     console.error('Error rendering video with subtitles:', error);
-    
+
     return NextResponse.json(
       {
         success: false,

@@ -13,8 +13,8 @@ logger = logging.getLogger(__name__)
 
 class VideoAnalyzer:
     """
-    Analyzes video to find optimal crop window for vertical format (9:16)
-    Tracks faces and smooths camera movement
+    Analyzes video to find optimal crop window for a target aspect ratio.
+    Tracks faces and smooths camera movement.
     """
     
     def __init__(self, sample_rate: int = 5):
@@ -35,36 +35,44 @@ class VideoAnalyzer:
         
         logger.info("VideoAnalyzer initialized")
     
-    def analyze(self, video_path: str) -> Dict:
+    def analyze(self, video_path: str, aspect_ratio: Tuple[int, int] = (9, 16)) -> Dict:
         """
-        Analyze video and generate crop data
-        
+        Analyze video and generate crop data for the given aspect ratio
+
         Args:
             video_path: Path to input video file
-            
+            aspect_ratio: Target aspect ratio as (w, h) tuple, e.g. (9, 16), (1, 1)
+
         Returns:
             Dictionary containing video metadata and crop coordinates
         """
+        ar_w, ar_h = aspect_ratio
+
         # Open video
         cap = cv2.VideoCapture(video_path)
-        
+
         if not cap.isOpened():
             raise ValueError(f"Cannot open video file: {video_path}")
-        
+
         # Get video properties
         fps = cap.get(cv2.CAP_PROP_FPS)
         width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         duration = total_frames / fps if fps > 0 else 0
-        
+
         logger.info(f"Video: {width}x{height}, {fps} fps, {total_frames} frames, {duration:.2f}s")
-        
-        # Calculate target crop dimensions (9:16 aspect ratio)
-        crop_width = int(height * 9 / 16)
+
+        # Calculate target crop dimensions for the requested aspect ratio
+        crop_width = int(height * ar_w / ar_h)
         crop_height = height
-        
-        logger.info(f"Target crop size: {crop_width}x{crop_height}")
+
+        # If crop_width exceeds video width, crop height instead
+        if crop_width > width:
+            crop_width = width
+            crop_height = int(width * ar_h / ar_w)
+
+        logger.info(f"Target crop size: {crop_width}x{crop_height} ({ar_w}:{ar_h})")
         
         # Detect faces and track centers
         face_centers = []
