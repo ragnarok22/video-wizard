@@ -425,7 +425,7 @@ Visit: http://localhost:3000/video-wizard
 
 ### Git & Quality
 
-- **[COMMIT_CONVENTIONS.md](COMMIT_CONVENTIONS.md)** - Commit message guidelines
+- **[COMMIT_CONVENTIONS.md](docs/COMMIT_CONVENTIONS.md)** - Commit message guidelines
 - **[HUSKY_SETUP.md](HUSKY_SETUP.md)** - Git hooks setup and troubleshooting
 
 ### Features & Services
